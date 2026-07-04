@@ -142,7 +142,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <button class="tab" id="tab-secciones">📋 Secc.</button>
   <button class="tab" id="tab-entradas">📥 Entrada</button>
   <button class="tab" id="tab-salidas">📤 Salida</button>
-  <button class="tab" id="tab-encargado">🔐 <span id="pin-lbl">PIN</span></button>
+  <button class="tab" id="tab-encargado">🔐 <span id="pin-lbl">PIN</span><span class="nbadge" id="stock-badge" style="display:none;background:#c62828;">0</span></button>
 </div>
 
 <!-- CAPTURA -->
@@ -322,6 +322,76 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div style="font-size:14px;font-weight:700;margin-bottom:10px;">📈 Avance por categoría</div>
       <div id="enc-cats"></div>
     </div>
+    <!-- CONFIGURAR META -->
+    <div class="card" style="margin-bottom:12px;">
+      <div style="font-size:14px;font-weight:700;margin-bottom:12px;">⚙️ Configurar meta de inventario</div>
+      <div style="font-size:13px;color:#888;margin-bottom:14px;">Captura el total de racks/secciones por piso. El sistema calcula el porcentaje de avance automáticamente.</div>
+
+      <div style="font-size:12px;font-weight:700;color:#1565c0;margin-bottom:8px;">🏢 Piso 1 — Picking</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+        <label class="lbl" style="margin:0;white-space:nowrap;">Total racks:</label>
+        <input class="inp" type="number" id="meta-p1" placeholder="0" min="1" inputmode="numeric" style="max-width:100px;padding:8px 10px;font-size:15px;" />
+        <button class="btn btn-blue btn-sm" id="btn-meta-p1">Guardar</button>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:#6a1b9a;margin-bottom:8px;">🏢 Piso 2 — Racks grandes</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+        <label class="lbl" style="margin:0;white-space:nowrap;">Total secciones:</label>
+        <input class="inp" type="number" id="meta-p2" placeholder="0" min="1" inputmode="numeric" style="max-width:100px;padding:8px 10px;font-size:15px;" />
+        <button class="btn btn-purple btn-sm" id="btn-meta-p2">Guardar</button>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:#2e7d32;margin-bottom:8px;">🏢 Piso 3 — Almacenes A/B/C</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:4px;">
+        <div><label class="lbl">Almacén A</label><input class="inp" type="number" id="meta-p3a" placeholder="0" min="1" inputmode="numeric" style="padding:8px 10px;font-size:15px;text-align:center;" /></div>
+        <div><label class="lbl">Almacén B</label><input class="inp" type="number" id="meta-p3b" placeholder="0" min="1" inputmode="numeric" style="padding:8px 10px;font-size:15px;text-align:center;" /></div>
+        <div><label class="lbl">Almacén C</label><input class="inp" type="number" id="meta-p3c" placeholder="0" min="1" inputmode="numeric" style="padding:8px 10px;font-size:15px;text-align:center;" /></div>
+      </div>
+      <button class="btn btn-green" id="btn-meta-p3" style="margin-top:8px;">Guardar Piso 3</button>
+      <div id="msg-meta" class="msg msg-ok"></div>
+    </div>
+
+    <!-- ALERTAS STOCK -->
+    <div class="card" id="card-alertas" style="margin-bottom:12px;display:none;">
+      <div style="font-size:14px;font-weight:700;margin-bottom:12px;">🚨 Alertas de stock</div>
+      <div id="lista-sin-stock" style="margin-bottom:12px;"></div>
+      <div id="lista-stock-bajo"></div>
+    </div>
+
+    <!-- DASHBOARD AVANCE -->
+    <div class="card" style="margin-bottom:12px;">
+      <div style="font-size:14px;font-weight:700;margin-bottom:14px;">📊 Avance del inventario</div>
+      <div style="font-size:11px;color:#888;text-align:right;margin-bottom:10px;" id="dash-fecha"></div>
+
+      <!-- KPIs -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+        <div style="background:#f5f4f0;border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-size:26px;font-weight:700;color:#1565c0;" id="dash-pct">0%</div>
+          <div style="font-size:11px;color:#888;">Avance general</div>
+        </div>
+        <div style="background:#f5f4f0;border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-size:26px;font-weight:700;color:#2e7d32;" id="dash-ok">0</div>
+          <div style="font-size:11px;color:#888;">Cuadradas</div>
+        </div>
+        <div style="background:#f5f4f0;border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-size:26px;font-weight:700;color:#e65100;" id="dash-diff">0</div>
+          <div style="font-size:11px;color:#888;">Con diferencias</div>
+        </div>
+        <div style="background:#f5f4f0;border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-size:26px;font-weight:700;color:#999;" id="dash-pend">0</div>
+          <div style="font-size:11px;color:#888;">Pendientes</div>
+        </div>
+      </div>
+
+      <!-- PISOS -->
+      <div id="dash-pisos"></div>
+
+      <!-- CAPTURISTAS -->
+      <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;margin:12px 0 8px;">Capturistas hoy</div>
+      <div id="dash-capturistas"></div>
+    </div>
+
+    <!-- BORRAR TODO -->
     <div class="card" style="border-color:#c62828;background:#fdecea;">
       <div style="font-size:14px;font-weight:700;color:#c62828;margin-bottom:6px;">⚠️ Zona peligrosa</div>
       <div style="font-size:13px;color:#888;margin-bottom:12px;">Borra todo el inventario. No se puede deshacer.</div>
@@ -379,7 +449,7 @@ window.addEventListener('load', function() {
     actualizarNBadge();
     const tabActiva = document.querySelector('.tab.active')?.id;
     if(tabActiva==='tab-secciones') renderSecciones();
-    if(encargadoActivo) renderEncargado();
+    if(encargadoActivo){ renderEncargado(); renderDashboard(); renderAlertas(); }
   });
 
   db.ref('movimientos').on('value', snap => {
@@ -467,6 +537,9 @@ window.addEventListener('load', function() {
   document.getElementById('btn-exp-res').addEventListener('click', exportResumen);
   document.getElementById('btn-exp-todo').addEventListener('click', exportCompleto);
   document.getElementById('btn-borrar-todo').addEventListener('click', borrarTodo);
+  document.getElementById('btn-meta-p1').addEventListener('click', ()=>guardarMeta('p1'));
+  document.getElementById('btn-meta-p2').addEventListener('click', ()=>guardarMeta('p2'));
+  document.getElementById('btn-meta-p3').addEventListener('click', ()=>guardarMeta('p3'));
   document.getElementById('inp-stock-busq').addEventListener('input', renderStock);
 
 }); // fin window.load
@@ -1112,6 +1185,196 @@ function descargar(txt,nombre){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\uFEFF'+txt],{type:'text/csv;charset=utf-8;'}));
   a.download=nombre; a.click();
+}
+
+// ── METAS POR PISO ────────────────────────────────────────────────
+let metas = {p1:0, p2:0, p3a:0, p3b:0, p3c:0};
+
+function cargarMetas(){
+  db.ref('metas').once('value').then(snap=>{
+    const m = snap.val()||{};
+    metas = {...metas, ...m};
+    if(metas.p1) document.getElementById('meta-p1').value = metas.p1;
+    if(metas.p2) document.getElementById('meta-p2').value = metas.p2;
+    if(metas.p3a) document.getElementById('meta-p3a').value = metas.p3a;
+    if(metas.p3b) document.getElementById('meta-p3b').value = metas.p3b;
+    if(metas.p3c) document.getElementById('meta-p3c').value = metas.p3c;
+    renderDashboard();
+  });
+}
+
+async function guardarMeta(piso){
+  const vals = {};
+  if(piso==='p1'){
+    const v=parseInt(document.getElementById('meta-p1').value);
+    if(!v||v<1){mostrarMsg('msg-meta','Ingresa un número válido','err');return;}
+    vals.p1=v;
+  } else if(piso==='p2'){
+    const v=parseInt(document.getElementById('meta-p2').value);
+    if(!v||v<1){mostrarMsg('msg-meta','Ingresa un número válido','err');return;}
+    vals.p2=v;
+  } else {
+    const a=parseInt(document.getElementById('meta-p3a').value)||0;
+    const b=parseInt(document.getElementById('meta-p3b').value)||0;
+    const c=parseInt(document.getElementById('meta-p3c').value)||0;
+    if(!a&&!b&&!c){mostrarMsg('msg-meta','Ingresa al menos un valor','err');return;}
+    if(a) vals.p3a=a; if(b) vals.p3b=b; if(c) vals.p3c=c;
+  }
+  await db.ref('metas').update(vals);
+  metas = {...metas,...vals};
+  mostrarMsg('msg-meta','✅ Meta guardada correctamente','ok');
+  renderDashboard();
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────
+function renderDashboard(){
+  if(!encargadoActivo) return;
+  const arr = Object.values(secciones);
+  const ahora = new Date();
+  document.getElementById('dash-fecha').textContent = ahora.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'}) + ' — ' + ahora.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+
+  // Contar por piso
+  const pisos = {p1:{ok:0,diff:0,pend:0,caps:{}}, p2:{ok:0,diff:0,pend:0,caps:{}}, p3a:{ok:0,diff:0,pend:0,caps:{}}, p3b:{ok:0,diff:0,pend:0,caps:{}}, p3c:{ok:0,diff:0,pend:0,caps:{}}};
+  arr.forEach(sec=>{
+    const ubi = (sec.ubi||'').toUpperCase();
+    let pisoKey = null;
+    if(ubi.startsWith('P1')) pisoKey='p1';
+    else if(ubi.startsWith('P2')) pisoKey='p2';
+    else if(ubi.startsWith('P3') && ubi.includes('-A-')) pisoKey='p3a';
+    else if(ubi.startsWith('P3') && ubi.includes('-B-')) pisoKey='p3b';
+    else if(ubi.startsWith('P3') && ubi.includes('-C-')) pisoKey='p3c';
+    if(!pisoKey) return;
+    const p = pisos[pisoKey];
+    if(sec.estado==='ok') p.ok++;
+    else if(sec.estado==='diff') p.diff++;
+    else p.pend++;
+    const quien = sec.c1?.[0]?.quien||sec.c2?.[0]?.quien;
+    if(quien&&quien!=='—') p.caps[quien]=(p.caps[quien]||0)+1;
+  });
+
+  // Totales generales
+  const totalMeta = (metas.p1||0)+(metas.p2||0)+(metas.p3a||0)+(metas.p3b||0)+(metas.p3c||0);
+  const totalOk = arr.filter(s=>s.estado==='ok').length;
+  const totalDiff = arr.filter(s=>s.estado==='diff').length;
+  const totalPend = totalMeta > 0 ? Math.max(0, totalMeta - arr.length) : arr.filter(s=>s.estado!=='ok'&&s.estado!=='diff').length;
+  const pct = totalMeta>0 ? Math.round(totalOk/totalMeta*100) : 0;
+
+  document.getElementById('dash-pct').textContent = pct+'%';
+  document.getElementById('dash-ok').textContent = totalOk;
+  document.getElementById('dash-diff').textContent = totalDiff;
+  document.getElementById('dash-pend').textContent = totalMeta>0 ? Math.max(0,totalMeta-totalOk-totalDiff) : '—';
+
+  // Render pisos
+  const pisosDef = [
+    {key:'p1', label:'Piso 1 — Picking', sub:'Por rack', meta:metas.p1, color:'#1565c0', data:pisos.p1},
+    {key:'p2', label:'Piso 2 — Racks grandes', sub:'Por sección', meta:metas.p2, color:'#6a1b9a', data:pisos.p2},
+    {key:'p3', label:'Piso 3 — Almacenes A/B/C', sub:'Por almacén', meta:(metas.p3a||0)+(metas.p3b||0)+(metas.p3c||0), color:'#2e7d32',
+      data:{ok:pisos.p3a.ok+pisos.p3b.ok+pisos.p3c.ok, diff:pisos.p3a.diff+pisos.p3b.diff+pisos.p3c.diff, pend:pisos.p3a.pend+pisos.p3b.pend+pisos.p3c.pend,
+            caps:{...pisos.p3a.caps,...pisos.p3b.caps,...pisos.p3c.caps}},
+      subs:[
+        {label:'Almacén A', meta:metas.p3a||0, ok:pisos.p3a.ok, diff:pisos.p3a.diff},
+        {label:'Almacén B', meta:metas.p3b||0, ok:pisos.p3b.ok, diff:pisos.p3b.diff},
+        {label:'Almacén C', meta:metas.p3c||0, ok:pisos.p3c.ok, diff:pisos.p3c.diff},
+      ]
+    },
+  ];
+
+  document.getElementById('dash-pisos').innerHTML = pisosDef.map(p=>{
+    const pct2 = p.meta>0 ? Math.round(p.data.ok/p.meta*100) : 0;
+    const metaLabel = p.meta>0 ? p.meta+' totales' : 'Sin meta configurada';
+    const capsHtml = Object.entries(p.data.caps).slice(0,3).map(([n,c])=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:0.5px solid #f0f0f0;"><span style="color:#555;">${n}</span><span style="font-weight:700;color:#555;">${c} secc.</span></div>`).join('');
+    const subsHtml = p.subs ? '<div style="margin-top:10px;">' + p.subs.map(s=>{
+      const sp=s.meta>0?Math.round(s.ok/s.meta*100):0;
+      const bc=sp>=70?p.color:sp>=40?'#e65100':'#c62828';
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><div style="font-size:11px;color:#888;width:80px;flex-shrink:0;">'+s.label+'</div><div style="flex:1;height:6px;background:#f0f0f0;border-radius:3px;overflow:hidden;"><div style="height:6px;background:'+bc+';width:'+sp+'%;border-radius:3px;"></div></div><div style="font-size:11px;color:#888;width:28px;text-align:right;">'+sp+'%</div></div>';
+    }).join('')+'</div>' : '';
+    return '<div style="background:#f9f8f5;border-radius:10px;padding:14px;margin-bottom:10px;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">'
+        +'<div><div style="font-size:14px;font-weight:700;color:#1a1a1a;">'+p.label+'</div><div style="font-size:11px;color:#888;">'+p.sub+' · '+metaLabel+'</div></div>'
+        +'<div style="font-size:22px;font-weight:700;color:'+p.color+';">'+pct2+'%</div>'
+      +'</div>'
+      +'<div style="height:8px;background:#e8e8e8;border-radius:4px;overflow:hidden;margin-bottom:8px;"><div style="height:8px;background:'+p.color+';width:'+pct2+'%;border-radius:4px;"></div></div>'
+      +'<div style="display:flex;gap:6px;margin-bottom:8px;">'
+        +'<span style="font-size:11px;padding:3px 8px;border-radius:12px;background:#e8f5e9;color:#2e7d32;font-weight:600;">✅ '+p.data.ok+'</span>'
+        +(p.data.diff>0?'<span style="font-size:11px;padding:3px 8px;border-radius:12px;background:#fff3e0;color:#e65100;font-weight:600;">⚠️ '+p.data.diff+'</span>':'')
+        +(p.meta>0&&(p.meta-p.data.ok-p.data.diff)>0?'<span style="font-size:11px;padding:3px 8px;border-radius:12px;background:#f5f5f5;color:#999;font-weight:600;">⏳ '+(p.meta-p.data.ok-p.data.diff)+'</span>':'')
+      +'</div>'
+      +subsHtml
+      +(capsHtml?'<div style="margin-top:8px;font-size:11px;color:#aaa;font-weight:700;text-transform:uppercase;margin-bottom:4px;">Capturistas</div>'+capsHtml:'')
+    +'</div>';
+  }).join('');
+
+  // Capturistas totales
+  const allCaps = {};
+  arr.forEach(sec=>{
+    [sec.c1,sec.c2].forEach(arr2=>{
+      if(!arr2) return;
+      const quien = arr2[0]?.quien;
+      if(quien&&quien!=='—') allCaps[quien]=(allCaps[quien]||0)+1;
+    });
+  });
+  document.getElementById('dash-capturistas').innerHTML = Object.keys(allCaps).length
+    ? Object.entries(allCaps).sort((a,b)=>b[1]-a[1]).map(([n,c])=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:0.5px solid #f0f0f0;font-size:13px;">
+        <span style="color:#1a1a1a;">${n}</span>
+        <span style="font-weight:700;color:#555;">${c} secciones</span>
+      </div>`).join('')
+    : '<p style="color:#bbb;font-size:13px;text-align:center;padding:10px;">Sin datos de capturistas aún.</p>';
+}
+
+// ── ALERTAS DE STOCK ──────────────────────────────────────────────
+function renderAlertas(){
+  if(!encargadoActivo) return;
+
+  const sinStock = [];
+  const stockBajo = [];
+
+  // obtener todos los SKUs del inventario y movimientos
+  const skusSet = new Set();
+  Object.values(secciones).forEach(sec=>{ (sec.c1||[]).forEach(s=>skusSet.add(s.sku.toUpperCase())); });
+  Object.values(movimientos).forEach(m=>skusSet.add(m.sku.toUpperCase()));
+
+  skusSet.forEach(k=>{
+    const stock = calcStock(k);
+    const prod = cat[k];
+    if(!prod) return;
+    if(stock === 0) sinStock.push({sku:prod.sku, cat:prod.cat, stock});
+    else if(stock <= 5) stockBajo.push({sku:prod.sku, cat:prod.cat, stock});
+  });
+
+  // actualizar badge
+  const total = sinStock.length + stockBajo.length;
+  const badge = document.getElementById('stock-badge');
+  if(badge){ badge.textContent=total; badge.style.display=total>0?'inline':'none'; }
+
+  // mostrar/ocultar card
+  const card = document.getElementById('card-alertas');
+  if(!card) return;
+  card.style.display = total>0 ? 'block' : 'none';
+
+  // sin stock
+  const contSin = document.getElementById('lista-sin-stock');
+  if(sinStock.length){
+    contSin.innerHTML = '<div style="font-size:12px;font-weight:700;color:#c62828;margin-bottom:8px;">🔴 Sin stock ('+sinStock.length+' SKUs)</div>'
+      + sinStock.map(s=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:0.5px solid #f0f0f0;font-size:13px;">'
+        +'<div><div style="font-weight:700;color:#1a1a1a;">'+s.sku+'</div><div style="font-size:11px;color:#888;">'+s.cat+'</div></div>'
+        +'<span style="font-size:16px;font-weight:700;color:#c62828;">0</span>'
+        +'</div>').join('');
+  } else {
+    contSin.innerHTML = '';
+  }
+
+  // stock bajo
+  const contBajo = document.getElementById('lista-stock-bajo');
+  if(stockBajo.length){
+    contBajo.innerHTML = '<div style="font-size:12px;font-weight:700;color:#e65100;margin-bottom:8px;">🟠 Stock bajo — menos de 5 pzas ('+stockBajo.length+' SKUs)</div>'
+      + stockBajo.map(s=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:0.5px solid #f0f0f0;font-size:13px;">'
+        +'<div><div style="font-weight:700;color:#1a1a1a;">'+s.sku+'</div><div style="font-size:11px;color:#888;">'+s.cat+'</div></div>'
+        +'<span style="font-size:16px;font-weight:700;color:#e65100;">'+s.stock+'</span>'
+        +'</div>').join('');
+  } else {
+    contBajo.innerHTML = '';
+  }
 }
 
 // ── ELIMINAR SECCIÓN ──────────────────────────────────────────────
