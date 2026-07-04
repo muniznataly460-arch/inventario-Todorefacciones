@@ -586,13 +586,24 @@ function setUbi(codigo) {
   if(ubiActual && skusActuales.length>0)
     if(!confirm('Tienes '+skusActuales.length+' piezas sin finalizar. ¿Cambiar ubicación?')) return;
   ubiActual=codigo; skusActuales=[];
-  const sec = Object.values(secciones).find(s=>s.ubi===codigo);
-  if(sec && modo==='c1' && sec.c1) skusActuales=[...sec.c1];
-  if(sec && modo==='c2' && sec.c2) skusActuales=[...sec.c2];
+  // buscar por ubi en secciones
+  const fbKey = codigo.replace(/[^a-zA-Z0-9]/g,'_');
+  const sec = secciones[fbKey] || Object.values(secciones).find(s=>s.ubi===codigo);
+  const yaFinalizado = sec && ((modo==='c1' && sec.c1) || (modo==='c2' && sec.c2));
+  if(sec && modo==='c1' && sec.c1) skusActuales=[...sec.c1.map(s=>({...s}))];
+  if(sec && modo==='c2' && sec.c2) skusActuales=[...sec.c2.map(s=>({...s}))];
   document.getElementById('ubi-banner').className='ubi-banner set';
   document.getElementById('ubi-text').textContent=codigo;
   document.getElementById('add-sku-area').style.display='block';
   document.getElementById('lista-area').style.display=skusActuales.length>0?'block':'none';
+  // mostrar aviso si ya tenia datos
+  if(yaFinalizado){
+    const aviso = document.getElementById('msg-cap-ok');
+    aviso.textContent = '📋 Sección ya tiene '+(modo==='c1'?'Conteo 1':'Conteo 2')+' con '+skusActuales.length+' piezas. Agrega las que faltan y finaliza de nuevo.';
+    aviso.className='msg msg-ok';
+    aviso.style.display='block';
+    setTimeout(()=>aviso.style.display='none',4000);
+  }
   renderListaSKUs();
   setTimeout(()=>document.getElementById('inp-sku').focus(),100);
 }
@@ -643,17 +654,34 @@ async function finalizarSeccion() {
   const exist=snap.val()||{};
   const update={ubi:ubiActual};
   if(modo==='c1'){
-    update.c1=skusActuales; update.estado='c1'; update.ts_c1=Date.now();
+    update.c1=skusActuales; update.ts_c1=Date.now();
+    // si ya existe C2, comparar de inmediato
+    if(exist.c2){
+      update.c2=exist.c2;
+      update.estado=detectarDiffs({c1:skusActuales,c2:exist.c2})?'diff':'ok';
+    } else {
+      update.estado='c1';
+    }
   } else {
     update.c2=skusActuales; update.ts_c2=Date.now();
     update.c1=exist.c1||null;
-    if(exist.c1) update.estado=detectarDiffs({c1:exist.c1,c2:skusActuales})?'diff':'ok';
-    else update.estado='c2solo';
+    if(exist.c1){
+      update.estado=detectarDiffs({c1:exist.c1,c2:skusActuales})?'diff':'ok';
+    } else {
+      update.estado='c2solo';
+    }
   }
   await db.ref('secciones/'+key).update(update);
-  const msj=modo==='c1'?'✅ Conteo 1 guardado — '+skusActuales.length+' SKUs en '+ubiActual
-    :update.estado==='ok'?'✅ ¡Cuadrado! Ambos conteos coinciden en '+ubiActual
-    :'⚠️ Diferencia detectada en '+ubiActual;
+  let msj='';
+  if(modo==='c1'){
+    if(update.estado==='ok') msj='✅ ¡Cuadrado! C1 actualizado y coincide con C2 en '+ubiActual;
+    else if(update.estado==='diff') msj='⚠️ C1 actualizado — hay diferencia con C2 en '+ubiActual+'. Revisa Verificar.';
+    else msj='✅ Conteo 1 guardado — '+skusActuales.length+' SKUs en '+ubiActual;
+  } else {
+    if(update.estado==='ok') msj='✅ ¡Cuadrado! Ambos conteos coinciden en '+ubiActual;
+    else if(update.estado==='diff') msj='⚠️ Diferencia detectada en '+ubiActual+'. Revisa Verificar.';
+    else msj='✅ Conteo 2 guardado — '+skusActuales.length+' SKUs en '+ubiActual;
+  }
   ubiActual=null; skusActuales=[];
   document.getElementById('ubi-banner').className='ubi-banner empty';
   document.getElementById('ubi-text').textContent='Sin ubicación';
@@ -684,11 +712,17 @@ function renderSecciones() {
     else if(sec.c2){bc='s-c2';bt='C2: '+(sec.c2?.length||0)+' SKUs';}
     const meta=[(sec.c1?.length?'C1: '+(sec.c1[0]?.quien||''):''),(sec.c2?.length?'C2: '+(sec.c2[0]?.quien||''):'')].filter(Boolean).join(' · ');
     const detalle=buildDetalle(sec,fbKey);
-    return '<div class="sec-item"><div class="sec-hdr"><div><div style="font-size:14px;font-weight:700;">📍 '+sec.ubi+'</div><div style="font-size:11px;color:#888;margin-top:2px;">'+meta+'</div></div><div style="display:flex;gap:6px;align-items:center;"><span class="sbadge '+bc+'">'+bt+'</span><button class="btn-toggle-det" data-i="'+i+'" style="background:none;border:none;color:#aaa;font-size:18px;cursor:pointer;">▾</button></div></div><div class="sec-detail" id="det-'+i+'">'+detalle+'</div></div>';
+    const delSecBtn = encargadoActivo
+      ? '<button class="btn-del-sec" data-key="'+fbKey+'" style="background:none;border:none;color:#ddd;font-size:18px;cursor:pointer;padding:2px 6px;" title="Eliminar sección">🗑️</button>'
+      : '';
+    return '<div class="sec-item"><div class="sec-hdr"><div><div style="font-size:14px;font-weight:700;">📍 '+sec.ubi+'</div><div style="font-size:11px;color:#888;margin-top:2px;">'+meta+'</div></div><div style="display:flex;gap:6px;align-items:center;"><span class="sbadge '+bc+'">'+bt+'</span>'+delSecBtn+'<button class="btn-toggle-det" data-i="'+i+'" style="background:none;border:none;color:#aaa;font-size:18px;cursor:pointer;">▾</button></div></div><div class="sec-detail" id="det-'+i+'">'+detalle+'</div></div>';
   }).join('');
   cont.querySelectorAll('.btn-toggle-det').forEach(btn=>btn.addEventListener('click',function(){
     const det=document.getElementById('det-'+this.dataset.i);
     det.classList.toggle('open');
+  }));
+  cont.querySelectorAll('.btn-del-sec').forEach(btn=>btn.addEventListener('click',function(){
+    eliminarSeccion(this.dataset.key);
   }));
   // Botones elegir cual conteo estaba mal
   cont.querySelectorAll('.btn-cual').forEach(btn=>btn.addEventListener('click',function(){
@@ -1078,6 +1112,16 @@ function descargar(txt,nombre){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\uFEFF'+txt],{type:'text/csv;charset=utf-8;'}));
   a.download=nombre; a.click();
+}
+
+// ── ELIMINAR SECCIÓN ──────────────────────────────────────────────
+async function eliminarSeccion(fbKey){
+  if(!encargadoActivo){ alert('Solo el encargado puede eliminar secciones.'); return; }
+  const sec = secciones[fbKey];
+  if(!sec){ alert('Sección no encontrada.'); return; }
+  if(!confirm('¿Eliminar la sección "'+sec.ubi+'" con todos sus conteos?\n\nEsta acción no se puede deshacer.')) return;
+  await db.ref('secciones/'+fbKey).remove();
+  alert('✅ Sección "'+sec.ubi+'" eliminada.');
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────
