@@ -7,6 +7,7 @@
 <!-- Firebase PRIMERO, antes de todo -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f4f0;color:#1a1a1a;min-height:100vh;}
@@ -105,6 +106,79 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .msg-ok{background:#e8f5e9;color:#2e7d32;}.msg-err{background:#fdecea;color:#c62828;}
 /* BUSCADOR SKU */
 .ubi-result{display:flex;justify-content:space-between;align-items:center;background:#fff;border:1px solid #e8e8e8;border-radius:8px;padding:10px 14px;margin-bottom:6px;}
+</style>
+<style>
+/* ============ GENERADOR QR (solo Encargado) — todo delimitado bajo #s-qrgen ============ */
+#s-qrgen .config-screen{max-width:560px;margin:0 auto;padding:20px 16px;}
+#s-qrgen .header{background:#1a1a1a;color:#fff;padding:14px 20px;margin-bottom:20px;border-radius:12px;display:flex;align-items:center;gap:12px;}
+#s-qrgen .logo{font-size:15px;font-weight:700;letter-spacing:.08em;}
+#s-qrgen .logo span{color:#f0a500;}
+#s-qrgen .subtitle{font-size:12px;color:#888;}
+#s-qrgen .card{background:#fff;border-radius:12px;padding:18px;margin-bottom:14px;border:1px solid #e8e8e8;}
+#s-qrgen .card-title{font-size:13px;font-weight:700;color:#1a1a1a;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+#s-qrgen .piso-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
+#s-qrgen .p1{background:#e3f2fd;color:#1565c0;}
+#s-qrgen .p2{background:#f3e5f5;color:#6a1b9a;}
+#s-qrgen .p3{background:#e8f5e9;color:#2e7d32;}
+#s-qrgen label{font-size:11px;color:#777;font-weight:600;letter-spacing:.04em;text-transform:uppercase;display:block;margin-bottom:5px;}
+#s-qrgen input[type=number],#s-qrgen input[type=text]{width:100%;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:15px;background:#fff;}
+#s-qrgen input:focus{outline:none;border-color:#f0a500;}
+#s-qrgen input.error{border-color:#c62828;}
+#s-qrgen .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+#s-qrgen .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+#s-qrgen .grid4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;}
+#s-qrgen .rack-range{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:end;}
+#s-qrgen .rack-range .sep{font-size:18px;color:#aaa;padding-bottom:10px;text-align:center;}
+#s-qrgen .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f5f5f5;}
+#s-qrgen .toggle-row:last-child{border-bottom:none;}
+#s-qrgen .toggle-lbl{font-size:13px;color:#555;}
+#s-qrgen .toggle{position:relative;width:42px;height:24px;}
+#s-qrgen .toggle input{opacity:0;width:0;height:0;}
+#s-qrgen .slider{position:absolute;inset:0;background:#ddd;border-radius:12px;cursor:pointer;transition:.2s;}
+#s-qrgen .slider:before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s;}
+#s-qrgen input:checked + .slider{background:#f0a500;}
+#s-qrgen input:checked + .slider:before{transform:translateX(18px);}
+#s-qrgen .hint{font-size:12px;color:#aaa;margin-top:6px;}
+#s-qrgen .hint.warn{color:#e65100;}
+#s-qrgen .info-box{background:#f5f4f0;border-radius:8px;padding:10px 12px;margin-top:10px;font-size:12px;color:#555;line-height:1.6;}
+#s-qrgen .info-box strong{color:#1a1a1a;}
+#s-qrgen .section-divider{font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin:12px 0 8px;}
+#s-qrgen .btn-generar{width:100%;padding:15px;background:#f0a500;color:#1a1a1a;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;margin-top:6px;}
+#s-qrgen .btn-generar:active{transform:scale(.98);}
+#s-qrgen .btn-generar:disabled{background:#ddd;color:#aaa;cursor:not-allowed;}
+#s-qrgen .preview-count{text-align:center;font-size:13px;color:#888;margin-top:10px;margin-bottom:10px;}
+#s-qrgen .preview-count span{font-weight:700;color:#1a1a1a;}
+#s-qrgen .btn-back{background:#fff3;border:none;color:#fff;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;}
+#s-qrgen .print-screen{display:none;}
+#s-qrgen .print-toolbar{background:#1a1a1a;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;flex-wrap:wrap;}
+#s-qrgen .print-toolbar .logo{font-size:14px;}
+#s-qrgen .btn-print{background:#f0a500;color:#1a1a1a;border:none;padding:9px 20px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:700;}
+#s-qrgen .btn-download{background:#2e7d32;color:#fff;border:none;padding:9px 20px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:700;}
+#s-qrgen .print-info{font-size:12px;color:#aaa;}
+#s-qrgen .toolbar-btns{display:flex;gap:8px;margin-left:auto;}
+#s-qrgen .qr-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:16px;max-width:960px;margin:0 auto;}
+#s-qrgen .qr-label{background:#fff;border:2px solid #e0e0e0;border-radius:10px;padding:12px;text-align:center;page-break-inside:avoid;break-inside:avoid;}
+#s-qrgen .qr-label .qr-container{display:flex;justify-content:center;margin-bottom:8px;}
+#s-qrgen .qr-label .qr-container canvas,#s-qrgen .qr-label .qr-container img{border-radius:4px;}
+#s-qrgen .qr-label .ubi-code{font-size:13px;font-weight:700;color:#1a1a1a;letter-spacing:.03em;margin-bottom:2px;}
+#s-qrgen .qr-label .ubi-detail{font-size:10px;color:#888;line-height:1.4;}
+#s-qrgen .qr-label .ubi-piso{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-top:4px;}
+#s-qrgen .p1-badge{background:#e3f2fd;color:#1565c0;}
+#s-qrgen .p2-badge{background:#f3e5f5;color:#6a1b9a;}
+#s-qrgen .p3a-badge{background:#e8f5e9;color:#2e7d32;}
+#s-qrgen .p3b-badge{background:#f1f8e9;color:#558b2f;}
+#s-qrgen .p3c-badge{background:#fff8e1;color:#f57f17;}
+#s-qrgen .section-header{grid-column:1/-1;background:#f5f4f0;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:700;color:#555;margin-top:8px;}
+@media print{
+  .hdr,#tabs-bar{display:none !important;}
+  #s-qrgen .print-toolbar{display:none !important;}
+  #s-qrgen .qr-grid{padding:4px;gap:6px;grid-template-columns:repeat(4,1fr) !important;}
+  #s-qrgen .qr-label{border:1.5px solid #bbb;break-inside:avoid;padding:8px;}
+  #s-qrgen .config-screen{display:none !important;}
+  #s-qrgen .print-screen{display:block !important;}
+  #s-qrgen .section-header{background:#eee;}
+  body{background:#fff;}
+}
 </style>
 </head>
 <body>
@@ -310,6 +384,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="stat"><div class="stat-n green" id="ste-ok">0</div><div class="stat-l">Cuadrados</div></div>
     </div>
     <div class="card">
+      <div style="font-size:14px;font-weight:700;margin-bottom:10px;">🏷️ Generador de códigos QR</div>
+      <div style="font-size:12px;color:#888;margin-bottom:12px;">Crea y descarga las etiquetas QR para racks, pasillos y tarimas. Solo el encargado tiene acceso.</div>
+      <button class="btn btn-dark" onclick="abrirGeneradorQR()">🖨️ Abrir generador de QR</button>
+    </div>
+    <div class="card">
       <div style="font-size:14px;font-weight:700;margin-bottom:10px;">📤 Exportar Excel</div>
       <button class="btn btn-amber" id="btn-exp-det" style="margin-bottom:8px;">📥 Hoja 1 — Detalle por ubicación</button>
       <button class="btn btn-amber" id="btn-exp-res" style="margin-bottom:8px;">📊 Hoja 2 — Resumen total por SKU</button>
@@ -405,6 +484,363 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
   </div>
 </div>
+
+<!-- GENERADOR QR — solo accesible desde el panel de Encargado (PIN) -->
+<div id="s-qrgen" class="screen">
+<div class="config-screen" id="config-screen">
+  <div class="header" style="justify-content:space-between;">
+    <div>
+      <div class="logo">ANA<span>UTOMY</span> · Generador QR</div>
+      <div class="subtitle">Configura cada piso y genera todas las etiquetas</div>
+    </div>
+    <button class="btn-back" onclick="cerrarGeneradorQR()">← Encargado</button>
+  </div>
+
+  <!-- PISO 1 -->
+  <div class="card">
+    <div class="card-title"><div class="piso-icon p1">P1</div>Piso 1 — Picking</div>
+    <div class="toggle-row">
+      <span class="toggle-lbl">Incluir Piso 1</span>
+      <label class="toggle"><input type="checkbox" id="inc-p1" checked onchange="actualizarConteo()"><span class="slider"></span></label>
+    </div>
+    <div id="cfg-p1" style="margin-top:12px;">
+      <div class="section-divider">Pasillos</div>
+      <div class="rack-range" style="margin-bottom:10px;">
+        <div><label>Del pasillo</label><input type="number" id="p1-pas-desde" value="1" min="1" max="50" oninput="actualizarConteo()" /></div>
+        <div class="sep">→</div>
+        <div><label>Al pasillo</label><input type="number" id="p1-pas-hasta" value="18" min="1" max="50" oninput="actualizarConteo()" /></div>
+      </div>
+      <div class="section-divider">Racks</div>
+      <div class="rack-range" style="margin-bottom:10px;">
+        <div><label>Del rack</label><input type="number" id="p1-rack-desde" value="1" min="1" max="200" oninput="actualizarConteo()" /></div>
+        <div class="sep">→</div>
+        <div><label>Al rack</label><input type="number" id="p1-rack-hasta" value="12" min="1" max="200" oninput="actualizarConteo()" /></div>
+      </div>
+      <div style="margin-bottom:10px;">
+        <label>Secciones</label>
+        <input type="text" id="p1-secciones" value="A,B,C,D,E" placeholder="A,B,C,D,E" oninput="actualizarConteo()" />
+      </div>
+      <div class="info-box"><strong>Ejemplo:</strong> P1-Pas1-R1-A</div>
+    </div>
+  </div>
+
+  <!-- PISO 2 -->
+  <div class="card">
+    <div class="card-title"><div class="piso-icon p2">P2</div>Piso 2 — Racks grandes</div>
+    <div class="toggle-row">
+      <span class="toggle-lbl">Incluir Piso 2</span>
+      <label class="toggle"><input type="checkbox" id="inc-p2" checked onchange="actualizarConteo()"><span class="slider"></span></label>
+    </div>
+    <div id="cfg-p2" style="margin-top:12px;">
+      <div class="section-divider">Racks</div>
+      <div class="rack-range" style="margin-bottom:10px;">
+        <div><label>Del rack</label><input type="number" id="p2-rack-desde" value="1" min="1" max="50" oninput="actualizarConteo()" /></div>
+        <div class="sep">→</div>
+        <div><label>Al rack</label><input type="number" id="p2-rack-hasta" value="7" min="1" max="50" oninput="actualizarConteo()" /></div>
+      </div>
+      <div class="section-divider">Secciones</div>
+      <div class="grid2" style="margin-bottom:6px;">
+        <div><label>Grupos de secciones</label><input type="number" id="p2-grupos" value="3" min="1" max="10" oninput="actualizarConteo()" /></div>
+        <div><label>Secciones por grupo</label><input type="number" id="p2-secs-por-grupo" value="14" min="1" max="50" oninput="actualizarConteo()" /></div>
+      </div>
+      <p class="hint">Genera: 1.1 → 1.14, 2.1 → 2.14, 3.1 → 3.14</p>
+      <div class="info-box" style="margin-top:8px;"><strong>Ejemplo:</strong> P2-R1-1.1</div>
+    </div>
+  </div>
+
+  <!-- PISO 3 -->
+  <div class="card">
+    <div class="card-title"><div class="piso-icon p3">P3</div>Piso 3 — Almacenes A / B / C</div>
+    <div class="toggle-row">
+      <span class="toggle-lbl">Incluir Piso 3</span>
+      <label class="toggle"><input type="checkbox" id="inc-p3" checked onchange="actualizarConteo()"><span class="slider"></span></label>
+    </div>
+    <div id="cfg-p3" style="margin-top:12px;">
+      <div style="margin-bottom:10px;">
+        <label>Almacenes</label>
+        <input type="text" id="p3-almacenes" value="A,B,C" placeholder="A,B,C" oninput="actualizarConteo()" />
+      </div>
+      <div class="section-divider">Racks</div>
+      <div class="rack-range" style="margin-bottom:10px;">
+        <div><label>Del rack</label><input type="number" id="p3-rack-desde" value="1" min="1" max="100" oninput="actualizarConteo()" /></div>
+        <div class="sep">→</div>
+        <div><label>Al rack</label><input type="number" id="p3-rack-hasta" value="20" min="1" max="100" oninput="actualizarConteo()" /></div>
+      </div>
+      <div class="section-divider">Secciones</div>
+      <div class="grid2" style="margin-bottom:6px;">
+        <div><label>Grupos de secciones</label><input type="number" id="p3-grupos" value="3" min="1" max="10" oninput="actualizarConteo()" /></div>
+        <div><label>Secciones por grupo</label><input type="number" id="p3-secs-por-grupo" value="20" min="1" max="50" oninput="actualizarConteo()" /></div>
+      </div>
+      <p class="hint">Genera: 1.1 → 1.20, 2.1 → 2.20, 3.1 → 3.20</p>
+      <div class="info-box" style="margin-top:8px;"><strong>Ejemplo:</strong> P3A-R1-1.1 &nbsp;|&nbsp; P3B-R5-2.3 &nbsp;|&nbsp; P3C-R20-3.20</div>
+    </div>
+  </div>
+
+  <!-- TARIMAS -->
+  <div class="card">
+    <div class="card-title"><div class="piso-icon" style="background:#fff3e0;color:#e65100;">T</div>Tarimas / Mercancía sin rack</div>
+    <div class="toggle-row">
+      <span class="toggle-lbl">Incluir tarimas</span>
+      <label class="toggle"><input type="checkbox" id="inc-tar" onchange="document.getElementById('cfg-tar').style.display=this.checked?'block':'none';actualizarConteo();"><span class="slider"></span></label>
+    </div>
+    <div id="cfg-tar" style="margin-top:12px;display:none;">
+      <div class="grid2" style="margin-bottom:6px;">
+        <div><label>Prefijo / zona</label><input type="text" id="tar-prefijo" value="TAR" placeholder="TAR, TAR-P1, TAR-PATIO..." oninput="actualizarConteo()" /></div>
+        <div><label>Cantidad de tarimas</label><input type="number" id="tar-cantidad" value="10" min="1" max="500" oninput="actualizarConteo()" /></div>
+      </div>
+      <div class="info-box"><strong>Ejemplo:</strong> TAR-01, TAR-02… Usa un prefijo distinto por zona si tienes tarimas en varios pisos (TAR-P1-01, TAR-PATIO-01, etc.) generando el lote varias veces.</div>
+    </div>
+  </div>
+
+  <!-- CONFIG IMPRESIÓN -->
+  <div class="card">
+    <div class="card-title">⚙️ Configuración de impresión</div>
+    <div class="info-box" style="font-size:13px;">
+      📐 Tamaño QR: <strong>150px (Grande)</strong> &nbsp;·&nbsp; 📄 Columnas: <strong>4 por página</strong><br>
+      Optimizado para impresión y enmicado.
+    </div>
+  </div>
+
+  <div class="preview-count" id="preview-count">Se generarán <span id="total-count">0</span> etiquetas QR</div>
+  <button class="btn-generar" id="btn-generar" onclick="generarQRs()">🖨️ Generar y previsualizar etiquetas</button>
+</div>
+
+<!-- PANTALLA DE IMPRESIÓN DEL GENERADOR -->
+<div class="print-screen" id="print-screen">
+  <div class="print-toolbar">
+    <div class="logo">ANA<span style="color:#f0a500;">UTOMY</span> · Etiquetas QR</div>
+    <span class="print-info" id="print-info"></span>
+    <button class="btn-back" onclick="volverConfig()">← Volver</button>
+    <div class="toolbar-btns">
+      <button class="btn-download" onclick="descargarHTML()">⬇️ Descargar HTML</button>
+      <button class="btn-print" onclick="window.print()">🖨️ Imprimir / PDF</button>
+    </div>
+  </div>
+  <div class="qr-grid" id="qr-grid"></div>
+</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// GENERADOR DE QR — funciones (solo se usan dentro de #s-qrgen)
+// ══════════════════════════════════════════════════════════════
+['p1','p2','p3'].forEach(p => {
+  document.getElementById('inc-'+p).addEventListener('change', function() {
+    document.getElementById('cfg-'+p).style.display = this.checked ? 'block' : 'none';
+    actualizarConteo();
+  });
+});
+
+function generarSecciones(numGrupos, secsPerGrupo) {
+  const secs = [];
+  for (let g = 1; g <= numGrupos; g++)
+    for (let s = 1; s <= secsPerGrupo; s++)
+      secs.push(`${g}.${s}`);
+  return secs;
+}
+
+function rango(desdeId, hastaId) {
+  const desde = parseInt(document.getElementById(desdeId).value)||1;
+  const hasta  = parseInt(document.getElementById(hastaId).value)||1;
+  return hasta >= desde ? hasta - desde + 1 : 0;
+}
+
+function parseLista(str) {
+  return str.split(',').map(s=>s.trim()).filter(s=>s.length>0);
+}
+
+function actualizarConteo() {
+  let total = 0;
+
+  if (document.getElementById('inc-p1').checked) {
+    const pasillos = rango('p1-pas-desde','p1-pas-hasta');
+    const racks    = rango('p1-rack-desde','p1-rack-hasta');
+    const secs     = parseLista(document.getElementById('p1-secciones').value);
+    total += pasillos * racks * secs.length;
+  }
+  if (document.getElementById('inc-p2').checked) {
+    const racks        = rango('p2-rack-desde','p2-rack-hasta');
+    const grupos       = parseInt(document.getElementById('p2-grupos').value)||0;
+    const secsPerGrupo = parseInt(document.getElementById('p2-secs-por-grupo').value)||0;
+    total += racks * grupos * secsPerGrupo;
+  }
+  if (document.getElementById('inc-p3').checked) {
+    const almacenes    = parseLista(document.getElementById('p3-almacenes').value);
+    const racks        = rango('p3-rack-desde','p3-rack-hasta');
+    const grupos       = parseInt(document.getElementById('p3-grupos').value)||0;
+    const secsPerGrupo = parseInt(document.getElementById('p3-secs-por-grupo').value)||0;
+    total += almacenes.length * racks * grupos * secsPerGrupo;
+  }
+  if (document.getElementById('inc-tar').checked) {
+    total += parseInt(document.getElementById('tar-cantidad').value)||0;
+  }
+
+  document.getElementById('total-count').textContent = total.toLocaleString();
+  document.getElementById('btn-generar').disabled = total === 0 || total > 10000;
+  if (total > 10000)
+    document.getElementById('preview-count').innerHTML = '<span style="color:#c62828;">Demasiadas etiquetas (máx 10,000). Reduce los valores.</span>';
+  else
+    document.getElementById('preview-count').innerHTML = `Se generarán <span>${total.toLocaleString()}</span> etiquetas QR`;
+}
+
+function generarQRs() {
+  const grid = document.getElementById('qr-grid');
+  grid.innerHTML = '';
+  grid.style.gridTemplateColumns = `repeat(4, 1fr)`;
+  const ubicaciones = [];
+
+  // PISO 1
+  if (document.getElementById('inc-p1').checked) {
+    const pasDesde = parseInt(document.getElementById('p1-pas-desde').value)||1;
+    const pasHasta = parseInt(document.getElementById('p1-pas-hasta').value)||1;
+    const rackDesde = parseInt(document.getElementById('p1-rack-desde').value)||1;
+    const rackHasta = parseInt(document.getElementById('p1-rack-hasta').value)||1;
+    const secciones = parseLista(document.getElementById('p1-secciones').value);
+    const hdr = document.createElement('div');
+    hdr.className = 'section-header';
+    hdr.innerHTML = `🔵 Piso 1 — Picking &nbsp;<span style="font-weight:400;color:#888;">Pasillos ${pasDesde}→${pasHasta} · Racks ${rackDesde}→${rackHasta}</span>`;
+    grid.appendChild(hdr);
+    for (let pas=pasDesde; pas<=pasHasta; pas++)
+      for (let rack=rackDesde; rack<=rackHasta; rack++)
+        for (const sec of secciones)
+          ubicaciones.push({ code:`P1-Pas${pas}-R${rack}-${sec}`, detail:`Pasillo ${pas} · Rack ${rack} · Sec ${sec}`, piso:'P1', badge:'p1-badge' });
+  }
+
+  // PISO 2
+  if (document.getElementById('inc-p2').checked) {
+    const rackDesde    = parseInt(document.getElementById('p2-rack-desde').value)||1;
+    const rackHasta    = parseInt(document.getElementById('p2-rack-hasta').value)||1;
+    const numGrupos    = parseInt(document.getElementById('p2-grupos').value)||0;
+    const secsPerGrupo = parseInt(document.getElementById('p2-secs-por-grupo').value)||0;
+    const secciones    = generarSecciones(numGrupos, secsPerGrupo);
+    const hdr = document.createElement('div');
+    hdr.className = 'section-header';
+    hdr.innerHTML = `🟣 Piso 2 — Racks grandes &nbsp;<span style="font-weight:400;color:#888;">Racks ${rackDesde}→${rackHasta}</span>`;
+    grid.appendChild(hdr);
+    for (let rack=rackDesde; rack<=rackHasta; rack++)
+      for (const sec of secciones)
+        ubicaciones.push({ code:`P2-R${rack}-${sec}`, detail:`Rack ${rack} · Sección ${sec}`, piso:'P2', badge:'p2-badge' });
+  }
+
+  // PISO 3
+  if (document.getElementById('inc-p3').checked) {
+    const almacenes    = parseLista(document.getElementById('p3-almacenes').value);
+    const rackDesde    = parseInt(document.getElementById('p3-rack-desde').value)||1;
+    const rackHasta    = parseInt(document.getElementById('p3-rack-hasta').value)||1;
+    const numGrupos    = parseInt(document.getElementById('p3-grupos').value)||0;
+    const secsPerGrupo = parseInt(document.getElementById('p3-secs-por-grupo').value)||0;
+    const secciones    = generarSecciones(numGrupos, secsPerGrupo);
+    const badgeMap     = { A:'p3a-badge', B:'p3b-badge', C:'p3c-badge' };
+    for (const alm of almacenes) {
+      const hdr = document.createElement('div');
+      hdr.className = 'section-header';
+      hdr.innerHTML = `🟢 Piso 3 — Almacén ${alm} &nbsp;<span style="font-weight:400;color:#888;">Racks ${rackDesde}→${rackHasta}</span>`;
+      grid.appendChild(hdr);
+      for (let rack=rackDesde; rack<=rackHasta; rack++)
+        for (const sec of secciones)
+          ubicaciones.push({ code:`P3${alm}-R${rack}-${sec}`, detail:`Almacén ${alm} · Rack ${rack} · Sec ${sec}`, piso:`P3${alm}`, badge: badgeMap[alm]||'p3a-badge' });
+    }
+  }
+
+  // TARIMAS
+  if (document.getElementById('inc-tar').checked) {
+    const prefijo  = (document.getElementById('tar-prefijo').value.trim()||'TAR').toUpperCase();
+    const cantidad = parseInt(document.getElementById('tar-cantidad').value)||0;
+    const hdr = document.createElement('div');
+    hdr.className = 'section-header';
+    hdr.innerHTML = `🟠 Tarimas &nbsp;<span style="font-weight:400;color:#888;">Prefijo ${prefijo} · ${cantidad} etiquetas</span>`;
+    grid.appendChild(hdr);
+    for (let n=1; n<=cantidad; n++) {
+      const num = String(n).padStart(2,'0');
+      ubicaciones.push({ code:`${prefijo}-${num}`, detail:`Tarima ${num}`, piso:'TAR', badge:'p3b-badge' });
+    }
+  }
+
+  // Render en lotes
+  let i = 0;
+  function renderLote() {
+    const lote = Math.min(50, ubicaciones.length - i);
+    for (let j=0; j<lote; j++) {
+      const u = ubicaciones[i+j];
+      const wrap = document.createElement('div');
+      wrap.className = 'qr-label';
+      wrap.innerHTML = `
+        <div class="qr-container" id="qr-${i+j}"></div>
+        <div class="ubi-code">${u.code}</div>
+        <div class="ubi-detail">${u.detail}</div>
+        <span class="ubi-piso ${u.badge}">${u.piso}</span>`;
+      grid.appendChild(wrap);
+      new QRCode(document.getElementById('qr-'+(i+j)), {
+        text: u.code, width:150, height:150,
+        colorDark:'#1a1a1a', colorLight:'#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+    i += lote;
+    if (i < ubicaciones.length) requestAnimationFrame(renderLote);
+    else document.getElementById('print-info').textContent = `${ubicaciones.length.toLocaleString()} etiquetas generadas`;
+  }
+
+  document.getElementById('print-info').textContent = 'Generando...';
+  document.getElementById('config-screen').style.display = 'none';
+  document.getElementById('print-screen').style.display = 'block';
+  requestAnimationFrame(renderLote);
+}
+
+function descargarHTML() {
+  const grid    = document.getElementById('qr-grid').innerHTML;
+  const html = `<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8">
+<title>Etiquetas QR — ANAUTOMY</title>
+<style>
+.qr-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:16px;max-width:960px;margin:0 auto;}
+.qr-label{background:#fff;border:2px solid #e0e0e0;border-radius:10px;padding:12px;text-align:center;page-break-inside:avoid;break-inside:avoid;}
+.qr-label .qr-container{display:flex;justify-content:center;margin-bottom:8px;}
+.qr-label .ubi-code{font-size:13px;font-weight:700;color:#1a1a1a;letter-spacing:.03em;margin-bottom:2px;}
+.qr-label .ubi-detail{font-size:10px;color:#888;line-height:1.4;}
+.qr-label .ubi-piso{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-top:4px;}
+.p1-badge{background:#e3f2fd;color:#1565c0;}.p2-badge{background:#f3e5f5;color:#6a1b9a;}
+.p3a-badge{background:#e8f5e9;color:#2e7d32;}.p3b-badge{background:#f1f8e9;color:#558b2f;}.p3c-badge{background:#fff8e1;color:#f57f17;}
+.section-header{grid-column:1/-1;background:#f5f4f0;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:700;color:#555;margin-top:8px;}
+@media print{.no-print{display:none!important}.qr-grid{padding:4px;gap:6px;}.qr-label{border:1.5px solid #bbb;padding:8px;}}
+</style>
+</head><body style="background:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<div class="no-print" style="background:#1a1a1a;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+  <span style="font-size:15px;font-weight:700;letter-spacing:.08em;">ANA<span style="color:#f0a500;">UTOMY</span> · Etiquetas QR</span>
+  <button onclick="window.print()" style="background:#f0a500;color:#1a1a1a;border:none;padding:9px 20px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:700;margin-left:auto;">🖨️ Imprimir / Guardar PDF</button>
+</div>
+<div class="qr-grid" style="grid-template-columns:repeat(4,1fr);">${grid}</div>
+</body></html>`;
+  const blob = new Blob([html], { type:'text/html;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'etiquetas_qr_anautomy.html';
+  a.click();
+}
+
+function volverConfig() {
+  document.getElementById('print-screen').style.display = 'none';
+  document.getElementById('config-screen').style.display = 'block';
+  document.getElementById('qr-grid').innerHTML = '';
+}
+
+// ── Entrada / salida del generador, controlada solo desde el panel de Encargado ──
+function abrirGeneradorQR(){
+  if(!encargadoActivo){ alert('Solo el encargado puede generar códigos QR.'); return; }
+  document.getElementById('s-encargado').classList.remove('active');
+  document.getElementById('tabs-bar').style.display='none';
+  document.getElementById('s-qrgen').classList.add('active');
+  actualizarConteo();
+}
+function cerrarGeneradorQR(){
+  volverConfig();
+  document.getElementById('s-qrgen').classList.remove('active');
+  document.getElementById('tabs-bar').style.display='flex';
+  document.getElementById('s-encargado').classList.add('active');
+}
+
+actualizarConteo();
+</script>
 
 <script>
 // ══════════════════════════════════════════════════════════════
@@ -1017,9 +1453,9 @@ async function registrarSalida(){
   document.getElementById('form-sal').style.display='none';
   document.getElementById('inp-cant-sal').value='';
   document.getElementById('inp-motivo-sal').value='';
-  skuSalActual=null;
   mostrarMsg('msg-sal-ok','✅ Salida: '+cantVal+' pzas de '+skuSalActual+' en '+ubiSalActual,'ok');
   mostrarSKUsEnUbi(ubiSalActual);
+  skuSalActual=null;
   if(navigator.vibrate) navigator.vibrate(50);
 }
 
@@ -1177,10 +1613,12 @@ function renderStock(){
 }
 
 async function borrarTodo(){
-  if(!confirm('¿Seguro que quieres borrar TODO el inventario?\nEsta acción NO se puede deshacer.')) return;
+  if(!confirm('¿Seguro que quieres borrar TODO el inventario?\nEsto borrará secciones, entradas/salidas y metas configuradas.\nEsta acción NO se puede deshacer.')) return;
   if(!confirm('Segunda confirmación: ¿Borrar todo?')) return;
   await db.ref('secciones').remove();
-  alert('✅ Inventario borrado.');
+  await db.ref('movimientos').remove();
+  await db.ref('metas').remove();
+  alert('✅ Inventario borrado por completo (secciones, movimientos y metas).');
   renderEncargado();
 }
 
