@@ -215,7 +215,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <!-- TABS -->
 <div id="tabs-bar" class="tabs" style="display:none;">
   <button class="tab active" id="tab-captura">📦 Captura</button>
-  <button class="tab" id="tab-secciones">📋 Secc.</button>
+  <button class="tab" id="tab-secciones">📋 Secc.<span class="nbadge" id="nbadge" style="display:none;">0</span></button>
   <button class="tab" id="tab-entradas">📥 Entrada</button>
   <button class="tab" id="tab-salidas">📤 Salida</button>
   <button class="tab" id="tab-encargado">🔐 <span id="pin-lbl">PIN</span><span class="nbadge" id="stock-badge" style="display:none;background:#c62828;">0</span></button>
@@ -227,6 +227,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div style="font-size:22px;">📍</div>
     <div><div class="ubi-text" id="ubi-text">Sin ubicación</div><div class="ubi-sub">Escanea el QR del rack para comenzar</div></div>
   </div>
+  <div id="msg-cap-ok" class="msg msg-ok"></div>
   <div class="card">
     <div style="font-size:13px;font-weight:700;margin-bottom:10px;">Ubicación del rack</div>
     <div class="scan-box" id="scan-box"><div style="font-size:36px;">📷</div><p>Toca aquí para escanear el QR del rack</p></div>
