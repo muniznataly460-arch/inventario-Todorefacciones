@@ -121,7 +121,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #s-qrgen .p2{background:#f3e5f5;color:#6a1b9a;}
 #s-qrgen .p3{background:#e8f5e9;color:#2e7d32;}
 #s-qrgen label{font-size:11px;color:#777;font-weight:600;letter-spacing:.04em;text-transform:uppercase;display:block;margin-bottom:5px;}
-#s-qrgen input[type=number],#s-qrgen input[type=text]{width:100%;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:15px;background:#fff;}
+#s-qrgen input[type=number],#s-qrgen input[type=text],#s-qrgen select{width:100%;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:15px;background:#fff;}
+#s-qrgen select:focus{outline:none;border-color:#f0a500;}
 #s-qrgen input:focus{outline:none;border-color:#f0a500;}
 #s-qrgen input.error{border-color:#c62828;}
 #s-qrgen .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
@@ -168,6 +169,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #s-qrgen .p3a-badge{background:#e8f5e9;color:#2e7d32;}
 #s-qrgen .p3b-badge{background:#f1f8e9;color:#558b2f;}
 #s-qrgen .p3c-badge{background:#fff8e1;color:#f57f17;}
+#s-qrgen .patio-badge{background:#fff3e0;color:#e65100;}
 #s-qrgen .section-header{grid-column:1/-1;background:#f5f4f0;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:700;color:#555;margin-top:8px;}
 @media print{
   .hdr,#tabs-bar{display:none !important;}
@@ -584,11 +586,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <label class="toggle"><input type="checkbox" id="inc-tar" onchange="document.getElementById('cfg-tar').style.display=this.checked?'block':'none';actualizarConteo();"><span class="slider"></span></label>
     </div>
     <div id="cfg-tar" style="margin-top:12px;display:none;">
-      <div class="grid2" style="margin-bottom:6px;">
-        <div><label>Prefijo / zona</label><input type="text" id="tar-prefijo" value="TAR" placeholder="TAR, TAR-P1, TAR-PATIO..." oninput="actualizarConteo()" /></div>
-        <div><label>Cantidad de tarimas</label><input type="number" id="tar-cantidad" value="10" min="1" max="500" oninput="actualizarConteo()" /></div>
+      <div class="grid3" style="margin-bottom:6px;">
+        <div><label>Piso</label>
+          <select id="tar-piso" onchange="actualizarConteo()">
+            <option value="P1">Piso 1 — Picking</option>
+            <option value="P2">Piso 2 — Racks grandes</option>
+            <option value="P3A">Piso 3 — Almacén A</option>
+            <option value="P3B">Piso 3 — Almacén B</option>
+            <option value="P3C">Piso 3 — Almacén C</option>
+            <option value="PATIO">Patio / Andén</option>
+          </select>
+        </div>
+        <div><label>Prefijo</label><input type="text" id="tar-prefijo" value="TAR" placeholder="TAR" oninput="actualizarConteo()" /></div>
+        <div><label>Cantidad</label><input type="number" id="tar-cantidad" value="10" min="1" max="500" oninput="actualizarConteo()" /></div>
       </div>
-      <div class="info-box"><strong>Ejemplo:</strong> TAR-01, TAR-02… Usa un prefijo distinto por zona si tienes tarimas en varios pisos (TAR-P1-01, TAR-PATIO-01, etc.) generando el lote varias veces.</div>
+      <div class="info-box"><strong>Ejemplo:</strong> TAR-P1-01, TAR-PATIO-01… Genera el lote varias veces si tienes tarimas en más de un piso o zona.</div>
     </div>
   </div>
 
@@ -744,15 +756,18 @@ function generarQRs() {
 
   // TARIMAS
   if (document.getElementById('inc-tar').checked) {
+    const piso     = document.getElementById('tar-piso').value;
     const prefijo  = (document.getElementById('tar-prefijo').value.trim()||'TAR').toUpperCase();
     const cantidad = parseInt(document.getElementById('tar-cantidad').value)||0;
+    const pisoLabelMap = {P1:'Piso 1 — Picking',P2:'Piso 2 — Racks grandes',P3A:'Piso 3 — Almacén A',P3B:'Piso 3 — Almacén B',P3C:'Piso 3 — Almacén C',PATIO:'Patio / Andén'};
+    const badgeMap     = {P1:'p1-badge',P2:'p2-badge',P3A:'p3a-badge',P3B:'p3b-badge',P3C:'p3c-badge',PATIO:'patio-badge'};
     const hdr = document.createElement('div');
     hdr.className = 'section-header';
-    hdr.innerHTML = `🟠 Tarimas &nbsp;<span style="font-weight:400;color:#888;">Prefijo ${prefijo} · ${cantidad} etiquetas</span>`;
+    hdr.innerHTML = `🟠 Tarimas — ${pisoLabelMap[piso]} &nbsp;<span style="font-weight:400;color:#888;">${prefijo}-${piso}-## · ${cantidad} etiquetas</span>`;
     grid.appendChild(hdr);
     for (let n=1; n<=cantidad; n++) {
       const num = String(n).padStart(2,'0');
-      ubicaciones.push({ code:`${prefijo}-${num}`, detail:`Tarima ${num}`, piso:'TAR', badge:'p3b-badge' });
+      ubicaciones.push({ code:`${prefijo}-${piso}-${num}`, detail:`Tarima ${num} · ${pisoLabelMap[piso]}`, piso:piso, badge:badgeMap[piso]||'patio-badge' });
     }
   }
 
@@ -800,7 +815,7 @@ function descargarHTML() {
 .qr-label .ubi-detail{font-size:10px;color:#888;line-height:1.4;}
 .qr-label .ubi-piso{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-top:4px;}
 .p1-badge{background:#e3f2fd;color:#1565c0;}.p2-badge{background:#f3e5f5;color:#6a1b9a;}
-.p3a-badge{background:#e8f5e9;color:#2e7d32;}.p3b-badge{background:#f1f8e9;color:#558b2f;}.p3c-badge{background:#fff8e1;color:#f57f17;}
+.p3a-badge{background:#e8f5e9;color:#2e7d32;}.p3b-badge{background:#f1f8e9;color:#558b2f;}.p3c-badge{background:#fff8e1;color:#f57f17;}.patio-badge{background:#fff3e0;color:#e65100;}
 .section-header{grid-column:1/-1;background:#f5f4f0;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:700;color:#555;margin-top:8px;}
 @media print{.no-print{display:none!important}.qr-grid{padding:4px;gap:6px;}.qr-label{border:1.5px solid #bbb;padding:8px;}}
 </style>
