@@ -471,6 +471,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </div>
       </div>
 
+      <!-- PENDIENTES DE RE-FINALIZAR (por entradas/salidas después de finalizadas) -->
+      <div id="dash-reabiertas-wrap" style="display:none;background:#fff3e0;border:1px solid #ffcc80;border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="font-size:16px;">📥</span>
+          <span style="font-size:13px;font-weight:700;color:#e65100;">Secciones pendientes de re-finalizar (<span id="dash-reabiertas-n">0</span>)</span>
+        </div>
+        <div style="font-size:11px;color:#888;margin-bottom:8px;">Tuvieron movimiento después de haberse finalizado — su conteo ya no refleja el stock actual.</div>
+        <div id="dash-reabiertas-lista" style="font-size:12px;color:#555;"></div>
+      </div>
+
       <!-- PISOS -->
       <div id="dash-pisos"></div>
 
@@ -1383,9 +1393,17 @@ async function registrarEntrada(){
 // No requiere doble conteo físico — es una decisión explícita del capturista.
 async function finalizarSeccionEntrada(){
   if(!ubiEntActual){mostrarMsg('msg-fin-ent','Selecciona una ubicación primero','err');return;}
+  const key=ubiEntActual.replace(/[^a-zA-Z0-9]/g,'_');
+  const secExistente = secciones[key];
+  // Punto de corte: solo sumamos movimientos que sean MÁS NUEVOS que el último conteo/finalización,
+  // para no volver a sumar entradas que ya quedaron reflejadas la vez anterior.
+  const desde = secExistente?.ts_c1 || 0;
+  // Arrancamos con lo que YA estaba en la sección (conteo físico o finalización anterior) — no se borra.
   const skusUbi={};
+  (secExistente?.c1||[]).forEach(s=>{ skusUbi[s.sku.toUpperCase()] = {...s}; });
   Object.values(movimientos).forEach(m=>{
     if(m.ubi!==ubiEntActual) return;
+    if((m.ts||0) <= desde) return; // ya estaba contemplado en el conteo/finalización anterior
     const k=m.sku.toUpperCase();
     if(!skusUbi[k]) skusUbi[k]={sku:m.sku,cat:m.cat,cant:0,quien:m.quien||usuario||'—'};
     if(m.tipo==='entrada') skusUbi[k].cant+=m.cant||0;
@@ -1393,13 +1411,12 @@ async function finalizarSeccionEntrada(){
   });
   const arr=Object.values(skusUbi).filter(s=>s.cant>0);
   if(!arr.length){mostrarMsg('msg-fin-ent','No hay piezas registradas todavía en '+ubiEntActual,'err');return;}
-  const key=ubiEntActual.replace(/[^a-zA-Z0-9]/g,'_');
   await db.ref('secciones/'+key).update({
     ubi:ubiEntActual,
     c1:arr, c2:arr,
     ts_c1:Date.now(), ts_c2:Date.now(),
     estado:'ok',
-    creadaDesde:'entrada'
+    creadaDesde: secExistente?.creadaDesde || 'entrada'
   });
   mostrarMsg('msg-fin-ent','✅ Sección "'+ubiEntActual+'" finalizada — cuenta como avance completo ('+arr.length+' SKUs).','ok');
   if(navigator.vibrate) navigator.vibrate(50);
@@ -1466,6 +1483,13 @@ async function registrarSalida(){
   const stock=calcStock(skuSalActual.toUpperCase());
   if(cantVal>stock){mostrarMsg('msg-sal','Stock insuficiente. Solo hay '+stock+' pzas.','err');return;}
   await db.ref('movimientos').push({tipo:'salida',sku:skuSalActual,cat:cat[skuSalActual.toUpperCase()]?.cat||'',cant:cantVal,ubi:ubiSalActual,motivo,quien:usuario||'—',ts:Date.now(),fecha:new Date().toLocaleDateString('es-MX')});
+  // si esta sección ya había sido finalizada por una entrada anterior, se reabre
+  // (igual que hace registrarEntrada, para que el dashboard no muestre un conteo desactualizado)
+  const keySal=ubiSalActual.replace(/[^a-zA-Z0-9]/g,'_');
+  const secSal=secciones[keySal];
+  if(secSal && secSal.creadaDesde==='entrada' && secSal.estado==='ok'){
+    await db.ref('secciones/'+keySal).update({estado:'reabierta'});
+  }
   document.getElementById('form-sal').style.display='none';
   document.getElementById('inp-cant-sal').value='';
   document.getElementById('inp-motivo-sal').value='';
@@ -1753,12 +1777,23 @@ function renderDashboard(){
   const totalOk = arr.filter(s=>s.estado==='ok').length;
   const totalDiff = arr.filter(s=>s.estado==='diff').length;
   const totalPend = totalMeta > 0 ? Math.max(0, totalMeta - arr.length) : arr.filter(s=>s.estado!=='ok'&&s.estado!=='diff').length;
-  const pct = totalMeta>0 ? Math.round(totalOk/totalMeta*100) : 0;
+  const pct = totalMeta>0 ? Math.min(100, Math.round(totalOk/totalMeta*100)) : 0;
 
   document.getElementById('dash-pct').textContent = pct+'%';
   document.getElementById('dash-ok').textContent = totalOk;
   document.getElementById('dash-diff').textContent = totalDiff;
   document.getElementById('dash-pend').textContent = totalMeta>0 ? Math.max(0,totalMeta-totalOk-totalDiff) : '—';
+
+  // Secciones pendientes de re-finalizar (reabiertas por movimiento después de finalizadas)
+  const reabiertas = arr.filter(s=>s.estado==='reabierta');
+  const wrapReab = document.getElementById('dash-reabiertas-wrap');
+  if(reabiertas.length){
+    wrapReab.style.display='block';
+    document.getElementById('dash-reabiertas-n').textContent = reabiertas.length;
+    document.getElementById('dash-reabiertas-lista').innerHTML = reabiertas.slice(0,8).map(s=>'📍 '+(s.ubi||'—')).join(' &nbsp;·&nbsp; ') + (reabiertas.length>8 ? ' &nbsp;·&nbsp; +'+(reabiertas.length-8)+' más' : '');
+  } else {
+    wrapReab.style.display='none';
+  }
 
   // Render pisos
   const pisosDef = [
@@ -1776,11 +1811,11 @@ function renderDashboard(){
   ];
 
   document.getElementById('dash-pisos').innerHTML = pisosDef.map(p=>{
-    const pct2 = p.meta>0 ? Math.round(p.data.ok/p.meta*100) : 0;
+    const pct2 = p.meta>0 ? Math.min(100, Math.round(p.data.ok/p.meta*100)) : 0;
     const metaLabel = p.meta>0 ? p.meta+' totales' : 'Sin meta configurada';
     const capsHtml = Object.entries(p.data.caps).slice(0,3).map(([n,c])=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:0.5px solid #f0f0f0;"><span style="color:#555;">${n}</span><span style="font-weight:700;color:#555;">${c} secc.</span></div>`).join('');
     const subsHtml = p.subs ? '<div style="margin-top:10px;">' + p.subs.map(s=>{
-      const sp=s.meta>0?Math.round(s.ok/s.meta*100):0;
+      const sp=s.meta>0?Math.min(100, Math.round(s.ok/s.meta*100)):0;
       const bc=sp>=70?p.color:sp>=40?'#e65100':'#c62828';
       return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><div style="font-size:11px;color:#888;width:80px;flex-shrink:0;">'+s.label+'</div><div style="flex:1;height:6px;background:#f0f0f0;border-radius:3px;overflow:hidden;"><div style="height:6px;background:'+bc+';width:'+sp+'%;border-radius:3px;"></div></div><div style="font-size:11px;color:#888;width:28px;text-align:right;">'+sp+'%</div></div>';
     }).join('')+'</div>' : '';
