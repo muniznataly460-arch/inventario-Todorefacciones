@@ -34,6 +34,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .btn-red{background:#c62828;color:#fff;}
 .btn-outline{background:#fff;color:#1a1a1a;border:1.5px solid #1a1a1a;}
 .btn-sm{padding:9px 16px;font-size:13px;width:auto;margin-top:0;}
+.filtro-sec{background:#fff;border:1.5px solid #e0e0e0;border-radius:20px;color:#555;cursor:pointer;}
+.filtro-sec.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a;}
 /* NOMBRE */
 .hero{text-align:center;padding:30px 0 10px;}
 .hero .icon{font-size:48px;margin-bottom:12px;}
@@ -284,6 +286,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="stat"><div class="stat-n" id="st-skus">0</div><div class="stat-l">SKUs</div></div>
     <div class="stat"><div class="stat-n orange" id="st-diffs">0</div><div class="stat-l">Diferencias</div></div>
     <div class="stat"><div class="stat-n green" id="st-ok">0</div><div class="stat-l">Cuadrados</div></div>
+  </div>
+  <div style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;">
+    <button class="btn-sm filtro-sec active" data-filtro="todas" style="white-space:nowrap;">Todas</button>
+    <button class="btn-sm filtro-sec" data-filtro="ok" style="white-space:nowrap;">✅ Cuadradas</button>
+    <button class="btn-sm filtro-sec" data-filtro="diff" style="white-space:nowrap;">⚠️ Con diferencias</button>
   </div>
   <div id="lista-secciones"><p style="color:#bbb;font-size:13px;text-align:center;padding:30px;">Sin secciones aún.</p></div>
 </div>
@@ -948,6 +955,12 @@ window.addEventListener('load', function() {
   // ── Tabs ────────────────────────────────────────────────────
   document.getElementById('tab-captura').addEventListener('click', () => showTab('captura'));
   document.getElementById('tab-secciones').addEventListener('click', () => { showTab('secciones'); renderSecciones(); });
+  document.querySelectorAll('.filtro-sec').forEach(btn=>btn.addEventListener('click', function(){
+    document.querySelectorAll('.filtro-sec').forEach(b=>b.classList.remove('active'));
+    this.classList.add('active');
+    filtroSecciones=this.dataset.filtro;
+    renderSecciones();
+  }));
   document.getElementById('tab-entradas').addEventListener('click', () => { showTab('entradas'); renderMovimientos(); });
   document.getElementById('tab-salidas').addEventListener('click', () => { showTab('salidas'); renderMovimientos(); });
   document.getElementById('tab-ciclico').addEventListener('click', () => { showTab('ciclico'); renderHistorialCiclico(); renderPlanDiario(); });
@@ -1259,11 +1272,14 @@ function detectarDiffs(sec){
 }
 
 // ── SECCIONES ────────────────────────────────────────────────────
+let filtroSecciones='todas';
 function renderSecciones() {
   actualizarStats();
   const cont=document.getElementById('lista-secciones');
-  const arr=Object.entries(secciones);
-  if(!arr.length){cont.innerHTML='<p style="color:#bbb;font-size:13px;text-align:center;padding:30px;">Sin secciones aún.</p>';return;}
+  let arr=Object.entries(secciones);
+  if(filtroSecciones==='ok') arr=arr.filter(([,sec])=>sec.estado==='ok');
+  else if(filtroSecciones==='diff') arr=arr.filter(([,sec])=>sec.estado==='diff');
+  if(!arr.length){cont.innerHTML='<p style="color:#bbb;font-size:13px;text-align:center;padding:30px;">'+(filtroSecciones==='todas'?'Sin secciones aún.':'No hay secciones con este filtro.')+'</p>';return;}
   cont.innerHTML=arr.map(([fbKey,sec],i)=>{
     let bc='s-c1',bt='C1: '+(sec.c1?.length||0)+' SKUs';
     if(sec.estado==='reabierta'){bc='s-c1';bt='📥 Entrada — pendiente de finalizar';}
