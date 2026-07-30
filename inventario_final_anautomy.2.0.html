@@ -218,6 +218,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <button class="tab" id="tab-secciones">📋 Secc.<span class="nbadge" id="nbadge" style="display:none;">0</span></button>
   <button class="tab" id="tab-entradas">📥 Entrada</button>
   <button class="tab" id="tab-salidas">📤 Salida</button>
+  <button class="tab" id="tab-ciclico" style="display:none;">🔄 Cíclico</button>
+  <!-- ↑ Pausado temporalmente a petición del cliente hasta terminar el inventario total.
+       Para reactivarlo, solo quita el style="display:none;" de este botón. -->
   <button class="tab" id="tab-encargado">🔐 <span id="pin-lbl">PIN</span><span class="nbadge" id="stock-badge" style="display:none;background:#c62828;">0</span></button>
 </div>
 
@@ -364,6 +367,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="card"><div style="font-size:13px;font-weight:700;color:#c62828;margin-bottom:10px;">Últimas salidas</div><div id="lista-salidas"><p style="color:#bbb;font-size:13px;text-align:center;padding:16px;">Sin salidas.</p></div></div>
 </div>
 
+<!-- CONTEO CÍCLICO — sin PIN, cualquier capturista lo puede usar -->
+<div id="s-ciclico" class="screen">
+  <div class="card">
+    <div style="font-size:14px;font-weight:700;margin-bottom:6px;">📅 Plan de hoy — <span id="plan-fecha"></span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:12px;">18 códigos sugeridos para revisar hoy, priorizando los que más entran/salen. Toca "Usar" para cargarlo abajo.</div>
+    <div id="plan-lista"></div>
+  </div>
+  <div class="card">
+    <div style="font-size:14px;font-weight:700;margin-bottom:10px;">🔄 Conteo cíclico (verificación rápida)</div>
+    <div style="font-size:12px;color:#888;margin-bottom:12px;">Cuenta físicamente un SKU al azar (idealmente unos cuantos por semana, sobre todo los de más movimiento) y compáralo contra lo que el sistema tiene calculado.</div>
+    <input class="inp" type="text" id="inp-cic-sku" placeholder="Código SKU a verificar" style="margin-bottom:4px;text-transform:uppercase;" />
+    <div id="cic-ubis" style="font-size:12px;color:#888;margin-bottom:8px;min-height:16px;"></div>
+    <input class="inp" type="number" id="inp-cic-fisico" placeholder="Cantidad física contada" min="0" style="margin-bottom:10px;" />
+    <button class="btn btn-dark" id="btn-cic-comparar">🔍 Comparar</button>
+    <div id="cic-resultado" style="margin-top:10px;"></div>
+    <div id="cic-historial" style="margin-top:14px;"></div>
+  </div>
+</div>
+
 <!-- ENCARGADO -->
 <div id="s-encargado" class="screen">
   <div id="pin-locked" class="pin-screen">
@@ -396,6 +418,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="btn btn-amber" id="btn-exp-det" style="margin-bottom:8px;">📥 Hoja 1 — Detalle por ubicación</button>
       <button class="btn btn-amber" id="btn-exp-res" style="margin-bottom:8px;">📊 Hoja 2 — Resumen total por SKU</button>
       <button class="btn btn-dark" id="btn-exp-todo">📄 Todo el inventario</button>
+      <button class="btn btn-blue" id="btn-exp-mov" style="margin-top:8px;">📥📤 Entradas y salidas</button>
     </div>
     <div class="card">
       <div style="font-size:14px;font-weight:700;margin-bottom:10px;">📊 Existencias actuales</div>
@@ -469,16 +492,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div style="font-size:26px;font-weight:700;color:#999;" id="dash-pend">0</div>
           <div style="font-size:11px;color:#888;">Pendientes</div>
         </div>
-      </div>
-
-      <!-- PENDIENTES DE RE-FINALIZAR (por entradas/salidas después de finalizadas) -->
-      <div id="dash-reabiertas-wrap" style="display:none;background:#fff3e0;border:1px solid #ffcc80;border-radius:10px;padding:12px 14px;margin-bottom:14px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-          <span style="font-size:16px;">📥</span>
-          <span style="font-size:13px;font-weight:700;color:#e65100;">Secciones pendientes de re-finalizar (<span id="dash-reabiertas-n">0</span>)</span>
-        </div>
-        <div style="font-size:11px;color:#888;margin-bottom:8px;">Tuvieron movimiento después de haberse finalizado — su conteo ya no refleja el stock actual.</div>
-        <div id="dash-reabiertas-lista" style="font-size:12px;color:#555;"></div>
       </div>
 
       <!-- PISOS -->
@@ -937,6 +950,7 @@ window.addEventListener('load', function() {
   document.getElementById('tab-secciones').addEventListener('click', () => { showTab('secciones'); renderSecciones(); });
   document.getElementById('tab-entradas').addEventListener('click', () => { showTab('entradas'); renderMovimientos(); });
   document.getElementById('tab-salidas').addEventListener('click', () => { showTab('salidas'); renderMovimientos(); });
+  document.getElementById('tab-ciclico').addEventListener('click', () => { showTab('ciclico'); renderHistorialCiclico(); renderPlanDiario(); });
   document.getElementById('tab-encargado').addEventListener('click', () => showTab('encargado'));
 
   // ── Captura ─────────────────────────────────────────────────
@@ -1005,6 +1019,9 @@ window.addEventListener('load', function() {
   document.getElementById('btn-exp-det').addEventListener('click', exportDetalle);
   document.getElementById('btn-exp-res').addEventListener('click', exportResumen);
   document.getElementById('btn-exp-todo').addEventListener('click', exportCompleto);
+  document.getElementById('btn-exp-mov').addEventListener('click', exportMovimientos);
+  document.getElementById('btn-cic-comparar').addEventListener('click', compararCiclico);
+  document.getElementById('inp-cic-sku').addEventListener('input', mostrarUbisCiclico);
   document.getElementById('btn-borrar-todo').addEventListener('click', borrarTodo);
   document.getElementById('btn-meta-p1').addEventListener('click', ()=>guardarMeta('p1'));
   document.getElementById('btn-meta-p2').addEventListener('click', ()=>guardarMeta('p2'));
@@ -1048,7 +1065,7 @@ function entrar() {
 
 function showTab(id) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  ['captura','secciones','entradas','salidas','encargado'].forEach(s=>{
+  ['captura','secciones','entradas','salidas','ciclico','encargado'].forEach(s=>{
     const el=document.getElementById('s-'+s); if(el) el.classList.remove('active');
   });
   document.getElementById('tab-'+id).classList.add('active');
@@ -1258,8 +1275,18 @@ function renderSecciones() {
     const delSecBtn = encargadoActivo
       ? '<button class="btn-del-sec" data-key="'+fbKey+'" style="background:none;border:none;color:#ddd;font-size:18px;cursor:pointer;padding:2px 6px;" title="Eliminar sección">🗑️</button>'
       : '';
-    return '<div class="sec-item"><div class="sec-hdr"><div><div style="font-size:14px;font-weight:700;">📍 '+sec.ubi+'</div><div style="font-size:11px;color:#888;margin-top:2px;">'+meta+'</div></div><div style="display:flex;gap:6px;align-items:center;"><span class="sbadge '+bc+'">'+bt+'</span>'+delSecBtn+'<button class="btn-toggle-det" data-i="'+i+'" style="background:none;border:none;color:#aaa;font-size:18px;cursor:pointer;">▾</button></div></div><div class="sec-detail" id="det-'+i+'">'+detalle+'</div></div>';
+    const finSecBtn = (encargadoActivo && sec.estado==='reabierta')
+      ? '<button class="btn-fin-sec" data-ubi="'+sec.ubi+'" style="background:#1a1a1a;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;">✅ Finalizar</button>'
+      : '';
+    return '<div class="sec-item"><div class="sec-hdr"><div><div style="font-size:14px;font-weight:700;">📍 '+sec.ubi+'</div><div style="font-size:11px;color:#888;margin-top:2px;">'+meta+'</div></div><div style="display:flex;gap:6px;align-items:center;">'+finSecBtn+'<span class="sbadge '+bc+'">'+bt+'</span>'+delSecBtn+'<button class="btn-toggle-det" data-i="'+i+'" style="background:none;border:none;color:#aaa;font-size:18px;cursor:pointer;">▾</button></div></div><div class="sec-detail" id="det-'+i+'">'+detalle+'</div></div>';
   }).join('');
+  cont.querySelectorAll('.btn-fin-sec').forEach(btn=>btn.addEventListener('click',async function(){
+    const ubi=this.dataset.ubi;
+    if(!confirm('¿Finalizar la sección "'+ubi+'"?\nSe va a sumar el conteo anterior con los movimientos nuevos y quedará marcada como completa.')) return;
+    const r=await finalizarSeccion(ubi);
+    if(r.ok){ alert('✅ Sección "'+ubi+'" finalizada ('+r.n+' SKUs).'); renderSecciones(); }
+    else alert(r.msg);
+  }));
   cont.querySelectorAll('.btn-toggle-det').forEach(btn=>btn.addEventListener('click',function(){
     const det=document.getElementById('det-'+this.dataset.i);
     det.classList.toggle('open');
@@ -1391,9 +1418,8 @@ async function registrarEntrada(){
 // Finaliza una sección de entrada: junta todo lo que hay ahí (entradas - salidas)
 // y lo guarda como Conteo 1 y Conteo 2 completos, para que cuente como avance.
 // No requiere doble conteo físico — es una decisión explícita del capturista.
-async function finalizarSeccionEntrada(){
-  if(!ubiEntActual){mostrarMsg('msg-fin-ent','Selecciona una ubicación primero','err');return;}
-  const key=ubiEntActual.replace(/[^a-zA-Z0-9]/g,'_');
+async function finalizarSeccion(ubi){
+  const key=ubi.replace(/[^a-zA-Z0-9]/g,'_');
   const secExistente = secciones[key];
   // Punto de corte: solo sumamos movimientos que sean MÁS NUEVOS que el último conteo/finalización,
   // para no volver a sumar entradas que ya quedaron reflejadas la vez anterior.
@@ -1402,7 +1428,7 @@ async function finalizarSeccionEntrada(){
   const skusUbi={};
   (secExistente?.c1||[]).forEach(s=>{ skusUbi[s.sku.toUpperCase()] = {...s}; });
   Object.values(movimientos).forEach(m=>{
-    if(m.ubi!==ubiEntActual) return;
+    if(m.ubi!==ubi) return;
     if((m.ts||0) <= desde) return; // ya estaba contemplado en el conteo/finalización anterior
     const k=m.sku.toUpperCase();
     if(!skusUbi[k]) skusUbi[k]={sku:m.sku,cat:m.cat,cant:0,quien:m.quien||usuario||'—'};
@@ -1410,15 +1436,21 @@ async function finalizarSeccionEntrada(){
     if(m.tipo==='salida') skusUbi[k].cant-=m.cant||0;
   });
   const arr=Object.values(skusUbi).filter(s=>s.cant>0);
-  if(!arr.length){mostrarMsg('msg-fin-ent','No hay piezas registradas todavía en '+ubiEntActual,'err');return;}
+  if(!arr.length) return {ok:false, msg:'No hay piezas registradas todavía en '+ubi};
   await db.ref('secciones/'+key).update({
-    ubi:ubiEntActual,
+    ubi:ubi,
     c1:arr, c2:arr,
     ts_c1:Date.now(), ts_c2:Date.now(),
     estado:'ok',
     creadaDesde: secExistente?.creadaDesde || 'entrada'
   });
-  mostrarMsg('msg-fin-ent','✅ Sección "'+ubiEntActual+'" finalizada — cuenta como avance completo ('+arr.length+' SKUs).','ok');
+  return {ok:true, n:arr.length};
+}
+async function finalizarSeccionEntrada(){
+  if(!ubiEntActual){mostrarMsg('msg-fin-ent','Selecciona una ubicación primero','err');return;}
+  const r = await finalizarSeccion(ubiEntActual);
+  if(!r.ok){ mostrarMsg('msg-fin-ent',r.msg,'err'); return; }
+  mostrarMsg('msg-fin-ent','✅ Sección "'+ubiEntActual+'" finalizada — cuenta como avance completo ('+r.n+' SKUs).','ok');
   if(navigator.vibrate) navigator.vibrate(50);
 }
 
@@ -1679,12 +1711,19 @@ function exportDetalle(){
 }
 function exportResumen(){
   const totales={};
+  // Base: todo lo contado en cada sección (igual criterio que calcStock — sin filtrar por estado)
   Object.values(secciones).forEach(sec=>{
-    if(sec.estado!=='ok') return;
     (sec.c1||[]).forEach(s=>{const k=s.sku.toUpperCase();if(!totales[k])totales[k]={sku:s.sku,cat:s.cat,total:0};totales[k].total+=s.cant||0;});
   });
+  // Movimientos: las entradas suman, las salidas restan (igual que calcStock, para que el reporte
+  // coincida con el stock real que ves en "Existencias actuales")
+  Object.values(movimientos).forEach(m=>{
+    const k=m.sku.toUpperCase();
+    if(!totales[k]) totales[k]={sku:m.sku,cat:m.cat,total:0};
+    totales[k].total += (m.tipo==='entrada'?1:-1)*(m.cant||0);
+  });
   let csv='SKU,CATEGORIA,CANTIDAD_TOTAL\n';
-  Object.values(totales).sort((a,b)=>a.cat.localeCompare(b.cat)).forEach(t=>csv+='"'+t.sku+'","'+t.cat+'",'+t.total+'\n');
+  Object.values(totales).map(t=>({...t,total:Math.max(0,t.total)})).sort((a,b)=>a.cat.localeCompare(b.cat)).forEach(t=>csv+='"'+t.sku+'","'+t.cat+'",'+t.total+'\n');
   descargar(csv,'ANAUTOMY_Hoja2_Resumen.csv');
 }
 function exportCompleto(){
@@ -1700,6 +1739,130 @@ function exportCompleto(){
     });
   });
   descargar(csv,'ANAUTOMY_Completo.csv');
+}
+// ── CONTEO CÍCLICO ────────────────────────────────────────────────
+function ubicacionesDeSku(skuKey){
+  const k=skuKey.toUpperCase();
+  const ubis=new Set();
+  Object.values(secciones).forEach(sec=>{
+    (sec.c1||[]).forEach(s=>{ if(s.sku.toUpperCase()===k && sec.ubi) ubis.add(sec.ubi); });
+  });
+  Object.values(movimientos).forEach(m=>{
+    if(m.sku.toUpperCase()===k && m.ubi && m.ubi!=='—' && m.ubi!=='AJUSTE-CICLICO') ubis.add(m.ubi);
+  });
+  return [...ubis];
+}
+function planDiarioSkus(porDia){
+  // Actividad = cuántas veces se ha movido cada SKU (entradas+salidas) — más movimiento = más riesgo de error
+  const actividad={};
+  Object.values(movimientos).forEach(m=>{
+    const k=m.sku.toUpperCase();
+    actividad[k]=(actividad[k]||0)+1;
+  });
+  const todos=[...new Set(CATALOGO_DATA.map(r=>r[0].toUpperCase()))];
+  const ordenado=todos.sort((a,b)=>{
+    const diff=(actividad[b]||0)-(actividad[a]||0);
+    return diff!==0 ? diff : a.localeCompare(b);
+  });
+  const totalChunks=Math.max(1,Math.ceil(ordenado.length/porDia));
+  const diaEpoch=Math.floor(Date.now()/86400000);
+  const chunkIdx=diaEpoch % totalChunks;
+  return ordenado.slice(chunkIdx*porDia, chunkIdx*porDia+porDia);
+}
+function usarSkuPlan(sku){
+  document.getElementById('inp-cic-sku').value=sku;
+  document.getElementById('inp-cic-fisico').value='';
+  document.getElementById('inp-cic-fisico').focus();
+  document.getElementById('cic-resultado').innerHTML='';
+}
+function renderPlanDiario(){
+  const cont=document.getElementById('plan-lista');
+  if(!cont) return;
+  const fechaHoy=new Date().toLocaleDateString('es-MX');
+  document.getElementById('plan-fecha').textContent=fechaHoy;
+  const skusHoy=planDiarioSkus(18);
+  db.ref('ciclicos').orderByChild('fecha').equalTo(fechaHoy).once('value').then(snap=>{
+    const data=snap.val()||{};
+    const yaHechos=new Set(Object.values(data).map(h=>h.sku));
+    cont.innerHTML=skusHoy.map(sku=>{
+      const hecho=yaHechos.has(sku);
+      const ubis=ubicacionesDeSku(sku);
+      const catNombre=cat[sku]?.cat||'—';
+      return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid #f5f5f5;">'+
+        '<div>'+(hecho?'✅ ':'⬜ ')+'<strong>'+sku+'</strong> <span style="color:#888;font-size:11px;">('+catNombre+')</span><br>'+
+        '<span style="font-size:11px;color:#aaa;">📍 '+(ubis.length?ubis.join(', '):'sin ubicación registrada')+'</span></div>'+
+        (hecho?'<span style="font-size:11px;color:#2e7d32;flex-shrink:0;">Listo</span>':'<button class="btn-sm btn-outline" style="flex-shrink:0;" onclick="usarSkuPlan(\''+sku+'\')">Usar</button>')+
+      '</div>';
+    }).join('');
+  });
+}
+let cicActual=null;
+function mostrarUbisCiclico(){
+  const skuVal=document.getElementById('inp-cic-sku').value.trim().toUpperCase();
+  const ubiDiv=document.getElementById('cic-ubis');
+  if(!skuVal){ ubiDiv.innerHTML=''; return; }
+  if(!cat[skuVal]){ ubiDiv.innerHTML='<span style="color:#c62828;">SKU no encontrado en el catálogo</span>'; return; }
+  const ubis=ubicacionesDeSku(skuVal);
+  ubiDiv.innerHTML = ubis.length ? '📍 Se encuentra en: <strong>'+ubis.join(', ')+'</strong>' : '⚠️ Sin ubicación registrada todavía para este SKU';
+}
+function compararCiclico(){
+  const skuVal=document.getElementById('inp-cic-sku').value.trim().toUpperCase();
+  const fisicoVal=parseInt(document.getElementById('inp-cic-fisico').value);
+  const resDiv=document.getElementById('cic-resultado');
+  if(!skuVal){ resDiv.innerHTML='<p style="color:#c62828;font-size:13px;">Ingresa un código SKU.</p>'; return; }
+  if(!cat[skuVal]){ resDiv.innerHTML='<p style="color:#c62828;font-size:13px;">Ese SKU no está en el catálogo.</p>'; return; }
+  if(isNaN(fisicoVal)||fisicoVal<0){ resDiv.innerHTML='<p style="color:#c62828;font-size:13px;">Ingresa la cantidad física contada.</p>'; return; }
+  const sistema=calcStock(skuVal);
+  const diff=fisicoVal-sistema;
+  cicActual={sku:skuVal,cat:cat[skuVal].cat,sistema,fisico:fisicoVal,diff};
+  if(diff===0){
+    resDiv.innerHTML='<div style="background:#e8f5e9;border-radius:8px;padding:12px;font-size:13px;color:#2e7d32;">✅ Coincide — el sistema y tu conteo físico dicen '+sistema+' pzas de '+skuVal+'.</div>';
+  } else {
+    resDiv.innerHTML='<div style="background:#fdecea;border-radius:8px;padding:12px;font-size:13px;color:#c62828;">⚠️ Diferencia detectada en '+skuVal+'<br>Sistema: '+sistema+' pzas &nbsp;·&nbsp; Físico: '+fisicoVal+' pzas &nbsp;·&nbsp; Diferencia: '+(diff>0?'+':'')+diff+'<br><button class="btn btn-amber" style="margin-top:8px;" onclick="ajustarCiclico()">🛠️ Ajustar el sistema a '+fisicoVal+' pzas</button></div>';
+  }
+  db.ref('ciclicos').push({...cicActual,ajustado:false,quien:usuario||'—',ts:Date.now(),fecha:new Date().toLocaleDateString('es-MX')}).then(renderHistorialCiclico);
+}
+async function ajustarCiclico(){
+  const c=cicActual;
+  if(!c) return;
+  if(!confirm('¿Ajustar el sistema para '+c.sku+' de '+c.sistema+' a '+c.fisico+' pzas?\n\nEsto registra un movimiento de ajuste — no borra tu historial de entradas/salidas anterior.')) return;
+  const tipo=c.diff>0?'entrada':'salida';
+  await db.ref('movimientos').push({tipo,sku:c.sku,cat:c.cat,cant:Math.abs(c.diff),ubi:'AJUSTE-CICLICO',motivo:'Ajuste por conteo cíclico',quien:usuario||'—',ts:Date.now(),fecha:new Date().toLocaleDateString('es-MX')});
+  alert('✅ Ajuste registrado. El sistema ahora refleja '+c.fisico+' pzas de '+c.sku+'.');
+  document.getElementById('inp-cic-sku').value='';
+  document.getElementById('inp-cic-fisico').value='';
+  document.getElementById('cic-resultado').innerHTML='';
+  cicActual=null;
+}
+function renderHistorialCiclico(){
+  db.ref('ciclicos').limitToLast(10).once('value').then(snap=>{
+    const data=snap.val()||{};
+    const arr=Object.values(data).sort((a,b)=>(b.ts||0)-(a.ts||0));
+    const cont=document.getElementById('cic-historial');
+    if(!cont) return;
+    if(!arr.length){ cont.innerHTML=''; return; }
+    cont.innerHTML='<div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;margin-bottom:6px;">Últimas verificaciones</div>'+
+      arr.map(h=>{
+        const ok=h.diff===0;
+        return '<div style="font-size:12px;padding:6px 0;border-bottom:1px solid #f5f5f5;">'+(ok?'✅':'⚠️')+' <strong>'+h.sku+'</strong> — '+h.fecha+' · Sistema: '+h.sistema+' · Físico: '+h.fisico+(ok?'':' · Dif: '+(h.diff>0?'+':'')+h.diff)+'</div>';
+      }).join('');
+  });
+}
+
+function exportMovimientos(){
+  const filas = Object.values(movimientos).sort((a,b)=>(b.ts||0)-(a.ts||0));
+  if(!filas.length){ alert('Todavía no hay entradas ni salidas registradas.'); return; }
+  let csv='FECHA,TIPO,SKU,CATEGORIA,UBICACION,CANTIDAD,MOTIVO,REGISTRO_POR\n';
+  filas.forEach(m=>{
+    const tipo = m.tipo==='entrada' ? 'ENTRADA' : 'SALIDA';
+    csv += '"'+(m.fecha||'')+'","'+tipo+'","'+(m.sku||'')+'","'+(m.cat||'')+'","'+(m.ubi||'')+'",'+(m.cant||0)+',"'+(m.motivo||'—')+'","'+(m.quien||'—')+'"\n';
+  });
+  const totalEnt = filas.filter(m=>m.tipo==='entrada').reduce((a,m)=>a+(m.cant||0),0);
+  const totalSal = filas.filter(m=>m.tipo==='salida').reduce((a,m)=>a+(m.cant||0),0);
+  csv += '\n"TOTAL PIEZAS DE ENTRADA",'+totalEnt+'\n';
+  csv += '"TOTAL PIEZAS DE SALIDA",'+totalSal+'\n';
+  csv += '"MOVIMIENTO NETO",'+(totalEnt-totalSal)+'\n';
+  descargar(csv,'ANAUTOMY_Entradas_Salidas.csv');
 }
 function descargar(txt,nombre){
   const a=document.createElement('a');
@@ -1783,17 +1946,6 @@ function renderDashboard(){
   document.getElementById('dash-ok').textContent = totalOk;
   document.getElementById('dash-diff').textContent = totalDiff;
   document.getElementById('dash-pend').textContent = totalMeta>0 ? Math.max(0,totalMeta-totalOk-totalDiff) : '—';
-
-  // Secciones pendientes de re-finalizar (reabiertas por movimiento después de finalizadas)
-  const reabiertas = arr.filter(s=>s.estado==='reabierta');
-  const wrapReab = document.getElementById('dash-reabiertas-wrap');
-  if(reabiertas.length){
-    wrapReab.style.display='block';
-    document.getElementById('dash-reabiertas-n').textContent = reabiertas.length;
-    document.getElementById('dash-reabiertas-lista').innerHTML = reabiertas.slice(0,8).map(s=>'📍 '+(s.ubi||'—')).join(' &nbsp;·&nbsp; ') + (reabiertas.length>8 ? ' &nbsp;·&nbsp; +'+(reabiertas.length-8)+' más' : '');
-  } else {
-    wrapReab.style.display='none';
-  }
 
   // Render pisos
   const pisosDef = [
