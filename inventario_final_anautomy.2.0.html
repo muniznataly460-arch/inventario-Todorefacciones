@@ -291,6 +291,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button class="btn-sm filtro-sec active" data-filtro="todas" style="white-space:nowrap;">Todas</button>
     <button class="btn-sm filtro-sec" data-filtro="ok" style="white-space:nowrap;">✅ Cuadradas</button>
     <button class="btn-sm filtro-sec" data-filtro="diff" style="white-space:nowrap;">⚠️ Con diferencias</button>
+    <button class="btn-sm filtro-sec" data-filtro="incompleta" style="white-space:nowrap;">📝 Incompletas</button>
   </div>
   <div id="lista-secciones"><p style="color:#bbb;font-size:13px;text-align:center;padding:30px;">Sin secciones aún.</p></div>
 </div>
@@ -1279,6 +1280,7 @@ function renderSecciones() {
   let arr=Object.entries(secciones);
   if(filtroSecciones==='ok') arr=arr.filter(([,sec])=>sec.estado==='ok');
   else if(filtroSecciones==='diff') arr=arr.filter(([,sec])=>sec.estado==='diff');
+  else if(filtroSecciones==='incompleta') arr=arr.filter(([,sec])=>sec.estado==='c1' || sec.estado==='c2solo');
   if(!arr.length){cont.innerHTML='<p style="color:#bbb;font-size:13px;text-align:center;padding:30px;">'+(filtroSecciones==='todas'?'Sin secciones aún.':'No hay secciones con este filtro.')+'</p>';return;}
   cont.innerHTML=arr.map(([fbKey,sec],i)=>{
     let bc='s-c1',bt='C1: '+(sec.c1?.length||0)+' SKUs';
