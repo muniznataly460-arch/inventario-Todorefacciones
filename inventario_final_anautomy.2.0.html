@@ -1301,7 +1301,7 @@ function renderSecciones() {
   cont.querySelectorAll('.btn-fin-sec').forEach(btn=>btn.addEventListener('click',async function(){
     const ubi=this.dataset.ubi;
     if(!confirm('¿Finalizar la sección "'+ubi+'"?\nSe va a sumar el conteo anterior con los movimientos nuevos y quedará marcada como completa.')) return;
-    const r=await finalizarSeccion(ubi);
+    const r=await finalizarSeccionPorUbicacion(ubi);
     if(r.ok){ alert('✅ Sección "'+ubi+'" finalizada ('+r.n+' SKUs).'); renderSecciones(); }
     else alert(r.msg);
   }));
@@ -1436,7 +1436,7 @@ async function registrarEntrada(){
 // Finaliza una sección de entrada: junta todo lo que hay ahí (entradas - salidas)
 // y lo guarda como Conteo 1 y Conteo 2 completos, para que cuente como avance.
 // No requiere doble conteo físico — es una decisión explícita del capturista.
-async function finalizarSeccion(ubi){
+async function finalizarSeccionPorUbicacion(ubi){
   const key=ubi.replace(/[^a-zA-Z0-9]/g,'_');
   const secExistente = secciones[key];
   // Punto de corte: solo sumamos movimientos que sean MÁS NUEVOS que el último conteo/finalización,
@@ -1466,7 +1466,7 @@ async function finalizarSeccion(ubi){
 }
 async function finalizarSeccionEntrada(){
   if(!ubiEntActual){mostrarMsg('msg-fin-ent','Selecciona una ubicación primero','err');return;}
-  const r = await finalizarSeccion(ubiEntActual);
+  const r = await finalizarSeccionPorUbicacion(ubiEntActual);
   if(!r.ok){ mostrarMsg('msg-fin-ent',r.msg,'err'); return; }
   mostrarMsg('msg-fin-ent','✅ Sección "'+ubiEntActual+'" finalizada — cuenta como avance completo ('+r.n+' SKUs).','ok');
   if(navigator.vibrate) navigator.vibrate(50);
